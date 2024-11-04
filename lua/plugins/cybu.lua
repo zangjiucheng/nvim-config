@@ -28,11 +28,6 @@ return {
         display_time = 700, -- Time (ms) the buffer list remains visible
         exclude = { "NvimTree", "TelescopePrompt" }, -- Ignore certain buffer types
       })
-
-      -- Keymaps for buffer navigation
-      vim.keymap.set("n", "H", "<Plug>(CybuPrev)", { silent = true, noremap = true, desc = "Previous Buffer" })
-      vim.keymap.set("n", "L", "<Plug>(CybuNext)", { silent = true, noremap = true, desc = "Next Buffer" })
-      vim.keymap.set({ "n", "v" }, "P", "<Plug>(CybuLastusedPrev)", { silent = true, noremap = true, desc = "Previous Recently Used Buffer" })
     end,
   },
 }

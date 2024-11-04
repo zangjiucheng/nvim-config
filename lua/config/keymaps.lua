@@ -2,6 +2,8 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+---- Keymaps for Compiler
+
 -- Open compiler
 vim.api.nvim_set_keymap('n', '<leader>cc', "<cmd>CompilerOpen<cr>", { noremap = true, silent = true })
 
@@ -13,3 +15,15 @@ vim.api.nvim_set_keymap('n', '<leader>cC',
 
 -- Toggle compiler results
 vim.api.nvim_set_keymap('n', '<leader>ct', "<cmd>CompilerToggleResults<cr>", { noremap = true, silent = true })
+
+---- Keymaps for Cybu
+
+-- Keymaps for buffer navigation
+vim.api.nvim_set_keymap("n", "H", "<Plug>(CybuPrev)", { silent = true, noremap = true, desc = "Previous Buffer" })
+vim.api.nvim_set_keymap("n", "L", "<Plug>(CybuNext)", { silent = true, noremap = true, desc = "Next Buffer" })
+vim.keymap.set({ "n", "v" }, "P", "<Plug>(CybuLastusedPrev)", { silent = true, noremap = true, desc = "Previous Recently Used Buffer" })
+
+---- Keymaps for Copilot-Chat
+
+-- Toggle Copilot-Chat
+vim.api.nvim_set_keymap('n', '<leader>ac', "<cmd>CopilotChatToggle<cr>", { noremap = true, silent = true })
