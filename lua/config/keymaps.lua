@@ -5,25 +5,39 @@
 ---- Keymaps for Compiler
 
 -- Open compiler
-vim.api.nvim_set_keymap('n', '<leader>cc', "<cmd>CompilerOpen<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>cc", "<cmd>CompilerOpen<cr>", { noremap = true, silent = true })
 
 -- Redo last selected option
-vim.api.nvim_set_keymap('n', '<leader>cC',
-     "<cmd>CompilerStop<cr>" -- (Optional, to dispose all tasks before redo)
-  .. "<cmd>CompilerRedo<cr>",
- { noremap = true, silent = true })
+vim.api.nvim_set_keymap(
+  "n",
+  "<leader>cC",
+  "<cmd>CompilerStop<cr>" -- (Optional, to dispose all tasks before redo)
+    .. "<cmd>CompilerRedo<cr>",
+  { noremap = true, silent = true }
+)
 
 -- Toggle compiler results
-vim.api.nvim_set_keymap('n', '<leader>ct', "<cmd>CompilerToggleResults<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ct", "<cmd>CompilerToggleResults<cr>", { noremap = true, silent = true })
 
 ---- Keymaps for Cybu
 
 -- Keymaps for buffer navigation
 vim.api.nvim_set_keymap("n", "H", "<Plug>(CybuPrev)", { silent = true, noremap = true, desc = "Previous Buffer" })
 vim.api.nvim_set_keymap("n", "L", "<Plug>(CybuNext)", { silent = true, noremap = true, desc = "Next Buffer" })
-vim.keymap.set({ "n", "v" }, "P", "<Plug>(CybuLastusedPrev)", { silent = true, noremap = true, desc = "Previous Recently Used Buffer" })
+vim.keymap.set(
+  { "n", "v" },
+  "P",
+  "<Plug>(CybuLastusedPrev)",
+  { silent = true, noremap = true, desc = "Previous Recently Used Buffer" }
+)
 
 ---- Keymaps for Copilot-Chat
 
 -- Toggle Copilot-Chat
-vim.api.nvim_set_keymap('n', '<leader>ac', "<cmd>CopilotChatToggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>ac", "<cmd>CopilotChatToggle<cr>", { noremap = true, silent = true })
+
+---- ToggleTerm
+
+-- Toggle the terminal
+
+vim.api.nvim_set_keymap("n", "<leader>tt", "<cmd>ToggleTerm<cr>", { noremap = true, silent = true })
