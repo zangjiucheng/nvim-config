@@ -3,5 +3,6 @@
 -- Add any additional options here
 local opt = vim.opt
 vim.g.autoformat = false
+vim.env.NODE_OPTIONS = "--experimental-sqlite"
 opt.colorcolumn = "80,100"
 opt.termguicolors = true
