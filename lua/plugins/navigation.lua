@@ -1,4 +1,46 @@
+local function open_git_diffview(state)
+  local node = state.tree and state.tree:get_node()
+  local path = node and (node.path or node:get_id()) or nil
+  if not path or path == "" then
+    return
+  end
+  vim.cmd("DiffviewOpen -- " .. vim.fn.fnameescape(path))
+end
+
 return {
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    opts = function(_, opts)
+      opts.close_if_last_window = false
+      opts.source_selector = vim.tbl_deep_extend("force", opts.source_selector or {}, {
+        winbar = true,
+        statusline = false,
+      })
+      opts.window = vim.tbl_deep_extend("force", opts.window or {}, {
+        position = "left",
+        width = 34,
+      })
+      opts.git_status = vim.tbl_deep_extend("force", opts.git_status or {}, {
+        window = {
+          mappings = {
+            ["<cr>"] = open_git_diffview,
+            ["l"] = open_git_diffview,
+            ["gd"] = open_git_diffview,
+            ["o"] = "open",
+          },
+        },
+      })
+      opts.filesystem = vim.tbl_deep_extend("force", opts.filesystem or {}, {
+        bind_to_cwd = false,
+        follow_current_file = {
+          enabled = true,
+          leave_dirs_open = true,
+        },
+        use_libuv_file_watcher = true,
+      })
+    end,
+  },
+
   -- Quick jump navigation
   {
     "folke/flash.nvim",
@@ -18,6 +60,10 @@ return {
     "ghillb/cybu.nvim",
     branch = "main",
     dependencies = { "nvim-tree/nvim-web-devicons", "nvim-lua/plenary.nvim" },
+    keys = {
+      { "H", "<Plug>(CybuPrev)", desc = "Previous Buffer" },
+      { "L", "<Plug>(CybuNext)", desc = "Next Buffer" },
+    },
     config = function()
       local ok, cybu = pcall(require, "cybu")
       if not ok then
@@ -42,12 +88,67 @@ return {
     end,
   },
 
+  {
+    "stevearc/aerial.nvim",
+    opts = function(_, opts)
+      opts.attach_mode = "window"
+      opts.close_automatic_events = { "unsupported" }
+      opts.layout = vim.tbl_deep_extend("force", opts.layout or {}, {
+        default_direction = "right",
+        min_width = 28,
+        max_width = { 36, 0.3 },
+        resize_to_content = false,
+        win_opts = {
+          winhl = "Normal:AerialNormal,NormalNC:AerialNormalNC,FloatBorder:AerialBorder,SignColumn:SignColumnSB",
+          signcolumn = "yes",
+          statuscolumn = " ",
+        },
+      })
+    end,
+    keys = {
+      { "<leader>cs", false },
+      {
+        "<leader>cs",
+        function()
+          require("aerial").toggle({ direction = "right" })
+        end,
+        desc = "Toggle Outline",
+      },
+    },
+  },
+
+  {
+    "folke/trouble.nvim",
+    opts = function(_, opts)
+      opts.modes = vim.tbl_deep_extend("force", opts.modes or {}, {
+        diagnostics = {
+          win = { position = "bottom", size = 12 },
+        },
+        qflist = {
+          win = { position = "bottom", size = 10 },
+        },
+        loclist = {
+          win = { position = "bottom", size = 10 },
+        },
+        lsp = {
+          win = { position = "right", size = 0.33 },
+        },
+      })
+    end,
+  },
+
   -- Motion tweaks for words separated by symbols
   { "chaoren/vim-wordmotion" },
 
   -- LSP-powered definition/reference peek
   {
     "DNLHC/glance.nvim",
+    keys = {
+      { "gpd", "<cmd>Glance definitions<cr>", desc = "Peek Definition" },
+      { "gpr", "<cmd>Glance references<cr>", desc = "Peek References" },
+      { "gpi", "<cmd>Glance implementations<cr>", desc = "Peek Implementation" },
+      { "gpy", "<cmd>Glance type_definitions<cr>", desc = "Peek Type Definition" },
+    },
     config = function()
       local glance = require("glance")
       local actions = glance.actions

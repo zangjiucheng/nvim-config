@@ -1,3 +1,33 @@
+local function latest_task(filter)
+  local ok, overseer = pcall(require, "overseer")
+  if not ok then
+    return nil
+  end
+  for _, task in ipairs(overseer.list_tasks({ recent_first = true })) do
+    if not filter or filter(task) then
+      return task
+    end
+  end
+  return nil
+end
+
+local function with_task(filter, action, missing)
+  return function()
+    local task = latest_task(filter)
+    if not task then
+      vim.notify(missing, vim.log.levels.WARN)
+      return
+    end
+    action(task)
+  end
+end
+
+local function run_overseer(opts)
+  return function()
+    require("overseer").run_template(opts or {})
+  end
+end
+
 return {
   -- Session management
   {
@@ -7,6 +37,14 @@ return {
     opts = {
       auto_restore = false,
       suppressed_dirs = { "~/", "~/Dev", "~/Downloads", "~/Documents", "~/Desktop/" },
+      session_lens = {
+        load_on_setup = true,
+      },
+    },
+    keys = {
+      { "<leader>pr", "<cmd>AutoSession restore<cr>", desc = "Restore Session" },
+      { "<leader>ps", "<cmd>AutoSession save<cr>", desc = "Save Session" },
+      { "<leader>pS", "<cmd>AutoSession search<cr>", desc = "Search Sessions" },
     },
   },
 
@@ -25,34 +63,195 @@ return {
   {
     "nvim-telescope/telescope.nvim",
     keys = {
+      { "<leader>fp", false },
       {
-        "<leader>fp",
+        "<leader>pp",
         function()
           require("telescope").extensions.projects.projects()
         end,
-        desc = "Switch Project",
+        desc = "Projects",
       },
+    },
+  },
+
+  {
+    "folke/snacks.nvim",
+    keys = {
+      { "<leader>fp", false },
     },
   },
 
   -- Task runner + compiler UI
   {
     "Zeioth/compiler.nvim",
-    cmd = { "CompilerOpen", "CompilerToggleResults", "CompilerRedo" },
+    cmd = { "CompilerOpen", "CompilerToggleResults", "CompilerRedo", "CompilerStop" },
     dependencies = { "stevearc/overseer.nvim", "nvim-telescope/telescope.nvim" },
+    keys = {
+      { "<leader>rf", "<cmd>CompilerOpen<cr>", desc = "Run File Action" },
+    },
     opts = {},
   },
   {
     "stevearc/overseer.nvim",
     commit = "6271cab7ccc4ca840faa93f54440ffae3a3918bd",
-    cmd = { "CompilerOpen", "CompilerToggleResults", "CompilerRedo" },
-    opts = {
-      task_list = {
-        direction = "bottom",
-        min_height = 25,
-        max_height = 25,
-        default_detail = 1,
+    cmd = {
+      "CompilerOpen",
+      "CompilerToggleResults",
+      "CompilerRedo",
+      "CompilerStop",
+      "OverseerRun",
+      "OverseerToggle",
+      "OverseerQuickAction",
+      "OverseerRunCmd",
+      "OverseerOpen",
+      "OverseerClose",
+    },
+    keys = {
+      { "<leader>rr", run_overseer({ prompt = "always" }), desc = "Run Task" },
+      {
+        "<leader>rn",
+        function()
+          local tag = require("overseer.constants").TAG.RUN
+          require("overseer").run_template({ tags = { tag } })
+        end,
+        desc = "Run Project Task",
+      },
+      {
+        "<leader>rb",
+        function()
+          local tag = require("overseer.constants").TAG.BUILD
+          require("overseer").run_template({ tags = { tag } })
+        end,
+        desc = "Run Build Task",
+      },
+      { "<leader>ro", "<cmd>OverseerToggle bottom<cr>", desc = "Toggle Task Panel" },
+      {
+        "<leader>rl",
+        with_task(nil, function(task)
+          task:restart(true)
+        end, "No recent task to restart"),
+        desc = "Restart Last Task",
+      },
+      {
+        "<leader>rq",
+        with_task(nil, function(task)
+          require("overseer").run_action(task)
+        end, "No recent task for actions"),
+        desc = "Task Actions",
+      },
+      {
+        "<leader>rs",
+        with_task(function(task)
+          return task:is_running()
+        end, function(task)
+          task:stop()
+        end, "No running task to stop"),
+        desc = "Stop Task",
       },
     },
+    opts = function(_, opts)
+      opts.templates = opts.templates or { "builtin" }
+      if not vim.tbl_contains(opts.templates, "user.ide") then
+        table.insert(opts.templates, "user.ide")
+      end
+      opts.task_list = vim.tbl_deep_extend("force", opts.task_list or {}, {
+        direction = "bottom",
+        min_height = 14,
+        max_height = 18,
+        default_detail = 2,
+      })
+    end,
+  },
+
+  {
+    "nvim-neotest/neotest",
+    dependencies = { "antoinemadec/FixCursorHold.nvim" },
+    opts = {
+      summary = {
+        open = "botright vsplit | vertical resize 42",
+      },
+      output = {
+        open_on_run = true,
+      },
+      output_panel = {
+        open = "botright split | resize 14",
+      },
+    },
+  },
+
+  {
+    "rcarriga/nvim-dap-ui",
+    opts = {
+      floating = {
+        border = "rounded",
+      },
+      layouts = {
+        {
+          elements = {
+            { id = "scopes", size = 0.55 },
+            { id = "stacks", size = 0.2 },
+            { id = "watches", size = 0.25 },
+          },
+          position = "right",
+          size = 48,
+        },
+        {
+          elements = {
+            { id = "repl", size = 0.55 },
+            { id = "console", size = 0.45 },
+          },
+          position = "bottom",
+          size = 12,
+        },
+      },
+    },
+  },
+
+  {
+    "jay-babu/mason-nvim-dap.nvim",
+    opts = function(_, opts)
+      opts.ensure_installed = opts.ensure_installed or {}
+      if not vim.tbl_contains(opts.ensure_installed, "python") then
+        -- Installs Mason's debugpy package for nvim-dap-python.
+        table.insert(opts.ensure_installed, "python")
+      end
+    end,
+  },
+
+  {
+    "mfussenegger/nvim-dap",
+    optional = true,
+    opts = function()
+      local dap = require("dap")
+      for _, language in ipairs({ "javascript", "javascriptreact", "typescript", "typescriptreact" }) do
+        for _, config in ipairs(dap.configurations[language] or {}) do
+          config.cwd = config.cwd or "${workspaceFolder}"
+          config.envFile = config.envFile or "${workspaceFolder}/.env"
+        end
+      end
+    end,
+  },
+
+  {
+    "mfussenegger/nvim-dap-python",
+    optional = true,
+    config = function()
+      local ide = require("config.ide")
+      local dap_python = require("dap-python")
+
+      dap_python.setup("debugpy-adapter")
+      dap_python.resolve_python = function()
+        return ide.python_command(vim.api.nvim_buf_get_name(0)) or "python3"
+      end
+
+      for _, config in ipairs(require("dap").configurations.python or {}) do
+        config.console = config.console or "integratedTerminal"
+        config.cwd = config.cwd or "${workspaceFolder}"
+        config.envFile = config.envFile or "${workspaceFolder}/.env"
+        if config.justMyCode == nil then
+          config.justMyCode = false
+        end
+      end
+    end,
   },
 }
