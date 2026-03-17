@@ -52,6 +52,17 @@ local function ask_copilot(prompt)
   end
 end
 
+local function leave_insert_and_wincmd(dir)
+  return function()
+    if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+      vim.cmd.stopinsert()
+    end
+    vim.schedule(function()
+      vim.cmd.wincmd(dir)
+    end)
+  end
+end
+
 return {
   {
     "CopilotC-Nvim/CopilotChat.nvim",
@@ -95,7 +106,13 @@ return {
       vim.api.nvim_create_autocmd("FileType", {
         group = group,
         pattern = "copilot-chat",
-        callback = function()
+        callback = function(args)
+          local opts = { buffer = args.buf, silent = true }
+          vim.keymap.set("i", "<Esc><Esc>", "<Esc>", opts)
+          vim.keymap.set({ "i", "n" }, "<C-h>", leave_insert_and_wincmd("h"), opts)
+          vim.keymap.set({ "i", "n" }, "<C-j>", leave_insert_and_wincmd("j"), opts)
+          vim.keymap.set({ "i", "n" }, "<C-k>", leave_insert_and_wincmd("k"), opts)
+          vim.keymap.set({ "i", "n" }, "<C-l>", leave_insert_and_wincmd("l"), opts)
           vim.schedule(place_copilot_sidebar)
         end,
       })

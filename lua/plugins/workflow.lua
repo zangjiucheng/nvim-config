@@ -28,6 +28,67 @@ local function run_overseer(opts)
   end
 end
 
+local terminal_ignored_filetypes = {
+  ["aerial"] = true,
+  ["copilot-chat"] = true,
+  ["neo-tree"] = true,
+  ["OverseerList"] = true,
+  ["qf"] = true,
+  ["snacks_terminal"] = true,
+  ["trouble"] = true,
+  ["Trouble"] = true,
+}
+
+local function terminal_parent_win()
+  local current = vim.api.nvim_get_current_win()
+
+  local function is_main_window(win)
+    if not vim.api.nvim_win_is_valid(win) then
+      return false
+    end
+    local buf = vim.api.nvim_win_get_buf(win)
+    local bt = vim.bo[buf].buftype
+    local ft = vim.bo[buf].filetype
+    if bt ~= "" then
+      return false
+    end
+    return not terminal_ignored_filetypes[ft]
+  end
+
+  if is_main_window(current) then
+    return current
+  end
+
+  local best, best_area = nil, -1
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if is_main_window(win) then
+      local area = vim.api.nvim_win_get_width(win) * vim.api.nvim_win_get_height(win)
+      if area > best_area then
+        best = win
+        best_area = area
+      end
+    end
+  end
+
+  return best or current
+end
+
+local function open_terminal(opts)
+  return function()
+    opts = opts or {}
+    local win = terminal_parent_win()
+    Snacks.terminal(nil, {
+      cwd = opts.root and LazyVim.root() or nil,
+      win = {
+        position = "bottom",
+        relative = "win",
+        win = win,
+        height = 0.3,
+      },
+    })
+  end
+end
+
 return {
   -- Session management
   {
@@ -78,7 +139,32 @@ return {
     "folke/snacks.nvim",
     keys = {
       { "<leader>fp", false },
+      { "<leader>fT", false },
+      { "<leader>ft", false },
+      { "<c-/>", false, mode = { "n", "t" } },
+      { "<c-_>", false, mode = { "n", "t" } },
+      { "<leader>fT", open_terminal(), desc = "Terminal (cwd)" },
+      { "<leader>ft", open_terminal({ root = true }), desc = "Terminal (Root Dir)" },
+      { "<c-/>", open_terminal({ root = true }), desc = "Terminal (Root Dir)", mode = { "n", "t" } },
+      { "<c-_>", open_terminal({ root = true }), desc = "which_key_ignore", mode = { "n", "t" } },
     },
+    opts = function(_, opts)
+      opts.terminal = vim.tbl_deep_extend("force", opts.terminal or {}, {
+        win = {
+          position = "bottom",
+          relative = "win",
+          height = 0.3,
+          keys = {
+            term_normal_twice = {
+              "<Esc><Esc>",
+              "<C-\\><C-n>",
+              mode = "t",
+              desc = "Terminal Normal Mode",
+            },
+          },
+        },
+      })
+    end,
   },
 
   -- Task runner + compiler UI
