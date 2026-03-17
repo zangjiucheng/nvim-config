@@ -73,18 +73,54 @@ local function terminal_parent_win()
   return best or current
 end
 
+local function terminal_windows()
+  local terminals = {}
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].filetype == "snacks_terminal" then
+      table.insert(terminals, win)
+    end
+  end
+  return terminals
+end
+
+local function next_terminal_count()
+  local max = 0
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    local ok, info = pcall(function()
+      return vim.b[buf].snacks_terminal
+    end)
+    if ok and type(info) == "table" and type(info.id) == "number" and info.id > max then
+      max = info.id
+    end
+  end
+  return max + 1
+end
+
 local function open_terminal(opts)
   return function()
     opts = opts or {}
-    local win = terminal_parent_win()
-    Snacks.terminal(nil, {
-      cwd = opts.root and LazyVim.root() or nil,
-      win = {
-        position = "bottom",
+    local terminals = terminal_windows()
+    local win_opts = {
+      position = "bottom",
+      relative = "win",
+      win = terminal_parent_win(),
+      height = 0.3,
+    }
+
+    if opts.new and #terminals > 0 then
+      win_opts = {
+        position = "right",
         relative = "win",
-        win = win,
-        height = 0.3,
-      },
+        win = terminals[#terminals],
+        width = 0.5,
+      }
+    end
+
+    Snacks.terminal(nil, {
+      count = opts.new and next_terminal_count() or nil,
+      cwd = opts.root and LazyVim.root() or nil,
+      win = win_opts,
     })
   end
 end
@@ -141,6 +177,8 @@ return {
       { "<leader>fp", false },
       { "<leader>fT", false },
       { "<leader>ft", false },
+      { "<leader>fN", open_terminal({ new = true }), desc = "New Terminal (cwd)" },
+      { "<leader>fM", open_terminal({ root = true, new = true }), desc = "New Terminal (Root Dir)" },
       { "<c-/>", false, mode = { "n", "t" } },
       { "<c-_>", false, mode = { "n", "t" } },
       { "<leader>fT", open_terminal(), desc = "Terminal (cwd)" },
@@ -155,12 +193,7 @@ return {
           relative = "win",
           height = 0.3,
           keys = {
-            term_normal_twice = {
-              "<Esc><Esc>",
-              "<C-\\><C-n>",
-              mode = "t",
-              desc = "Terminal Normal Mode",
-            },
+            term_normal = false,
           },
         },
       })

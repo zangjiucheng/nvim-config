@@ -2,6 +2,12 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+vim.keymap.set("n", "<leader>w<", "<cmd>vertical resize -4<cr>", { desc = "Decrease Window Width" })
+vim.keymap.set("n", "<leader>w>", "<cmd>vertical resize +4<cr>", { desc = "Increase Window Width" })
+vim.keymap.set("n", "<leader>w-", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
+vim.keymap.set("n", "<leader>w+", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
+vim.keymap.set("t", "<Esc><Esc>", [[<C-\><C-n>]], { desc = "Terminal Normal Mode" })
+
 local ok, wk = pcall(require, "which-key")
 
 if ok then
