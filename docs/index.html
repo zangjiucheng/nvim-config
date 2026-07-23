@@ -1,0 +1,639 @@
+<title>nvim-config — usage guide</title>
+<meta name="description" content="A LazyVim configuration tuned into a VS Code-shaped daily driver, without ever leaving Vim." />
+<style>
+  :root {
+    --bg: #f3f5fa;
+    --panel: #ffffff;
+    --inset: #eef1f8;
+    --border: #d7dced;
+    --text: #1b2338;
+    --text-dim: #5c6683;
+    --accent: #a3630d;
+    --accent-ink: #ffffff;
+    --accent-2: #257364;
+    --danger: #b13b3b;
+
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, "Liberation Mono", monospace;
+    --serif: ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+
+    --step--1: 0.8125rem;
+    --step-0: 0.9375rem;
+    --step-1: 1.0625rem;
+    --step-2: 1.3125rem;
+    --step-3: 1.6875rem;
+    --step-4: 2.125rem;
+    --step-5: 2.75rem;
+
+    --radius: 3px;
+    --gutter-w: 3rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420;
+      --panel: #161d2e;
+      --inset: #1c2438;
+      --border: #2a3450;
+      --text: #dbe2f0;
+      --text-dim: #8a94b3;
+      --accent: #e8a548;
+      --accent-ink: #221604;
+      --accent-2: #5fb3a3;
+      --danger: #e08585;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --inset: #1c2438;
+    --border: #2a3450;
+    --text: #dbe2f0;
+    --text-dim: #8a94b3;
+    --accent: #e8a548;
+    --accent-ink: #221604;
+    --accent-2: #5fb3a3;
+    --danger: #e08585;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f5fa;
+    --panel: #ffffff;
+    --inset: #eef1f8;
+    --border: #d7dced;
+    --text: #1b2338;
+    --text-dim: #5c6683;
+    --accent: #a3630d;
+    --accent-ink: #ffffff;
+    --accent-2: #257364;
+    --danger: #b13b3b;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: var(--step-0);
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cursor-blink { animation: blink 1.1s steps(1) infinite; }
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; z-index: 200;
+    background: var(--accent); color: var(--accent-ink); padding: 0.6em 1em; font-family: var(--mono);
+  }
+  .skip-link:focus { left: 0.5rem; top: 0.5rem; }
+
+  kbd, .kbd {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: var(--radius);
+    padding: 0.1em 0.5em;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  code, pre { font-family: var(--mono); }
+  code { background: var(--inset); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.05em 0.4em; font-size: 0.88em; }
+  pre {
+    background: var(--inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1em 1.1em;
+    overflow-x: auto;
+    font-size: 0.86em;
+    line-height: 1.6;
+  }
+  pre code { background: none; border: none; padding: 0; }
+
+  /* ---------- tab bar ---------- */
+  .tabbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: stretch;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tabbar .brand {
+    display: flex; align-items: center; gap: 0.5em;
+    padding: 0 1rem;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: var(--step--1);
+    letter-spacing: 0.02em;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    color: var(--text);
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .tabbar .brand .dot { width: 0.55em; height: 0.55em; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .tabbar nav { display: flex; }
+  .tab {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 0.85em 1.1em;
+    border-right: 1px solid var(--border);
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+  }
+  .tab:hover { color: var(--text); background: var(--inset); }
+  .tab[aria-current="true"] { color: var(--text); border-bottom-color: var(--accent); background: var(--inset); }
+  .tabbar .spacer { flex: 1; }
+  .repo-link {
+    display: flex; align-items: center; gap: 0.4em;
+    padding: 0 1rem; font-family: var(--mono); font-size: var(--step--1);
+    color: var(--text-dim); text-decoration: none; white-space: nowrap; border-left: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .repo-link:hover { color: var(--accent); }
+
+  /* ---------- shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    max-width: 82rem;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .explorer { display: none; }
+  }
+
+  .explorer {
+    position: sticky;
+    top: 2.85rem;
+    align-self: start;
+    height: calc(100vh - 2.85rem);
+    overflow-y: auto;
+    padding: 1.25rem 0.75rem 2rem;
+    border-right: 1px solid var(--border);
+  }
+  .explorer-label {
+    font-family: var(--mono); font-size: var(--step--1); text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-dim); padding: 0 0.5rem 0.6rem;
+  }
+  .filter-box {
+    width: 100%; font-family: var(--mono); font-size: var(--step--1);
+    background: var(--inset); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); padding: 0.45em 0.6em; margin-bottom: 0.75rem;
+  }
+  .filter-box::placeholder { color: var(--text-dim); }
+  .tree { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: var(--step--1); }
+  .tree > li { margin-bottom: 0.1rem; }
+  .tree a {
+    display: block; padding: 0.32em 0.5rem; border-radius: var(--radius);
+    color: var(--text-dim); text-decoration: none; border-left: 2px solid transparent;
+  }
+  .tree a:hover { color: var(--text); background: var(--inset); }
+  .tree a[aria-current="true"] { color: var(--accent); border-left-color: var(--accent); background: var(--inset); }
+  .tree .sub { list-style: none; margin: 0 0 0.35rem 0.9rem; padding: 0; border-left: 1px dotted var(--border); }
+  .tree .sub a { font-size: 0.94em; padding: 0.24em 0.5rem; }
+
+  /* ---------- main pane ---------- */
+  main { min-width: 0; padding: 0 1.75rem 6rem; }
+
+  .hero {
+    padding: 3rem 0 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2.5rem;
+  }
+  .hero .filetab {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-family: var(--mono); font-size: var(--step--1); color: var(--text-dim);
+    background: var(--inset); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0;
+    padding: 0.4em 0.9em; margin-bottom: -1px;
+  }
+  .hero h1 {
+    font-family: var(--mono); font-size: var(--step-5); font-weight: 700; margin: 0.3em 0 0.2em;
+    text-wrap: balance; letter-spacing: -0.01em;
+  }
+  .hero .tagline { font-size: var(--step-2); color: var(--text-dim); max-width: 42ch; text-wrap: balance; margin: 0 0 1.5rem; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+  .btn {
+    font-family: var(--mono); font-size: var(--step--1); text-decoration: none;
+    padding: 0.65em 1.1em; border-radius: var(--radius); border: 1px solid var(--border);
+    color: var(--text); display: inline-flex; align-items: center; gap: 0.5em;
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn:hover { border-color: var(--accent); }
+
+  section { margin-bottom: 3.5rem; scroll-margin-top: 3.5rem; }
+  .section-head {
+    display: grid; grid-template-columns: var(--gutter-w) 1fr; align-items: baseline;
+    border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; margin-bottom: 1.3rem;
+  }
+  .section-head .num { font-family: var(--mono); color: var(--text-dim); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+  .section-head h2 { font-family: var(--mono); font-size: var(--step-3); margin: 0; text-wrap: balance; }
+  .section-body { padding-left: var(--gutter-w); }
+  h3 { font-family: var(--mono); font-size: var(--step-1); margin: 1.8rem 0 0.6rem; }
+  .prose { max-width: 66ch; }
+  .prose p { margin: 0 0 1em; }
+  .prose li { margin-bottom: 0.4em; }
+  .lede { font-size: var(--step-1); color: var(--text-dim); max-width: 60ch; margin-bottom: 1.5rem; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1.1rem 1.3rem; margin: 1rem 0;
+  }
+  .panel.warn { border-left: 3px solid var(--danger); }
+  .panel.tip { border-left: 3px solid var(--accent-2); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: var(--step--1); min-width: 30rem; }
+  thead th {
+    text-align: left; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 0.82em; color: var(--text-dim); background: var(--inset);
+    padding: 0.6em 0.9em; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  td { padding: 0.55em 0.9em; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { white-space: nowrap; }
+
+  .tree-diagram { font-family: var(--mono); font-size: var(--step--1); background: var(--inset); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.2rem; overflow-x: auto; }
+  .tree-diagram .path { color: var(--text-dim); }
+  .tree-diagram .note { color: var(--accent-2); }
+
+  footer.page-foot { padding-left: var(--gutter-w); color: var(--text-dim); font-size: var(--step--1); border-top: 1px solid var(--border); padding-top: 1.5rem; margin-top: 3rem; }
+
+  /* ---------- statusline ---------- */
+  .statusline {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: var(--mono); font-size: var(--step--1);
+    padding: 0.4em 0.9em;
+  }
+  .statusline .mode { font-weight: 700; letter-spacing: 0.03em; white-space: nowrap; }
+  .statusline .mode .cursor-blink { display: inline-block; }
+  .statusline .section-now { flex: 1; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .statusline .pos { font-variant-numeric: tabular-nums; opacity: 0.9; white-space: nowrap; }
+  .statusline button.theme-toggle {
+    background: transparent; border: 1px solid var(--accent-ink); color: var(--accent-ink);
+    font-family: var(--mono); font-size: 1em; border-radius: var(--radius); padding: 0.15em 0.5em; cursor: pointer;
+    line-height: 1;
+  }
+  body { padding-bottom: 2.4rem; }
+
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+</style>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="tabbar">
+  <a class="brand" href="#top"><span class="dot"></span>nvim-config</a>
+  <nav aria-label="Sections">
+    <a class="tab" href="#overview">overview</a>
+    <a class="tab" href="#install">install.sh</a>
+    <a class="tab" href="#keymaps">keymaps.lua</a>
+    <a class="tab" href="#architecture">plugins/</a>
+  </nav>
+  <span class="spacer"></span>
+  <a class="repo-link" href="https://github.com/zangjiucheng/nvim-config" target="_blank" rel="noopener">github ↗</a>
+</div>
+
+<div class="shell" id="top">
+  <aside class="explorer" aria-label="Table of contents">
+    <div class="explorer-label">Explorer</div>
+    <input class="filter-box" id="filterBox" type="text" placeholder="Filter sections…" aria-label="Filter table of contents" />
+    <ul class="tree" id="tocTree">
+      <li><a href="#overview" data-toc>01 Overview</a></li>
+      <li><a href="#requirements" data-toc>02 Requirements</a></li>
+      <li><a href="#install" data-toc>03 Install</a></li>
+      <li>
+        <a href="#keymaps" data-toc>04 Keymaps</a>
+        <ul class="sub">
+          <li><a href="#km-global" data-toc>Global / VS Code</a></li>
+          <li><a href="#km-files" data-toc>File &amp; find</a></li>
+          <li><a href="#km-code" data-toc>Code</a></li>
+          <li><a href="#km-project" data-toc>Project &amp; session</a></li>
+          <li><a href="#km-run" data-toc>Run &amp; tasks</a></li>
+          <li><a href="#km-test" data-toc>Test &amp; debug</a></li>
+          <li><a href="#km-git" data-toc>Git</a></li>
+          <li><a href="#km-nav" data-toc>Navigation &amp; view</a></li>
+          <li><a href="#km-ai" data-toc>AI</a></li>
+        </ul>
+      </li>
+      <li><a href="#architecture" data-toc>05 Architecture</a></li>
+      <li><a href="#remote" data-toc>06 Remote &amp; multi-root</a></li>
+      <li><a href="#tools" data-toc>07 External tools</a></li>
+    </ul>
+  </aside>
+
+  <main id="main">
+    <div class="hero">
+      <span class="filetab">~/.config/nvim/README.md</span>
+      <h1>nvim&#8209;config</h1>
+      <p class="tagline">A LazyVim configuration for day-to-day coding — file explorer, command palette, debugger, source control, minimap, all in Neovim.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="#install">Install →</a>
+        <a class="btn" href="#keymaps">Jump to keymaps</a>
+      </div>
+    </div>
+
+    <section id="overview">
+      <div class="section-head"><span class="num">01</span><h2>Overview</h2></div>
+      <div class="section-body prose">
+        <p>This is a personal <a href="https://github.com/LazyVim/LazyVim" target="_blank" rel="noopener">LazyVim</a> configuration: a fixed IDE-style layout (explorer left, outline right, diagnostics and tasks along the bottom), a command palette, a debugger, a source-control panel, and a minimap — all reachable through the keymaps in <a href="#keymaps">§04</a>.</p>
+      </div>
+    </section>
+
+    <section id="requirements">
+      <div class="section-head"><span class="num">02</span><h2>Requirements</h2></div>
+      <div class="section-body">
+        <p class="lede">Neovim itself, plus the usual LazyVim toolchain. Language-specific runtimes are only needed for the languages you actually touch.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tool</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Neovim ≥ 0.10</td><td>Base editor. This config tracks current stable Neovim.</td></tr>
+              <tr><td>Git</td><td>Plugin management via <code>lazy.nvim</code>, and the Neogit/Diffview/gitsigns stack.</td></tr>
+              <tr><td>A Nerd Font</td><td>Icons in the explorer, statusline, minimap, and breadcrumbs. Boxes instead of glyphs almost always mean this is missing.</td></tr>
+              <tr><td><code>ripgrep</code> + <code>fd</code></td><td>Backs fzf-lua's file and live-grep pickers.</td></tr>
+              <tr><td><code>node</code></td><td>Several LSP servers (vtsls, marksman, etc.) and CopilotChat's tokenizer build step.</td></tr>
+              <tr><td><code>python3</code></td><td>Needed for <code>pyright</code>/<code>ruff</code> tooling and any Python project you open.</td></tr>
+              <tr><td><code>make</code> + C compiler</td><td>Treesitter parser builds, CopilotChat's <code>make tiktoken</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="install">
+      <div class="section-head"><span class="num">03</span><h2>Install</h2></div>
+      <div class="section-body">
+        <div class="prose">
+          <p>Back up any existing config, then clone this one into the standard Neovim config path:</p>
+        </div>
+        <pre><code>mv ~/.config/nvim ~/.config/nvim.bak 2>/dev/null
+git clone https://github.com/zangjiucheng/nvim-config.git ~/.config/nvim
+nvim</code></pre>
+        <div class="prose">
+          <p>First launch bootstraps <code>lazy.nvim</code>, installs every plugin, and pulls in LSP servers/formatters/debug adapters through Mason. It'll take a minute — let it finish, then restart Neovim once.</p>
+        </div>
+        <div class="panel tip">
+          <strong>Verify it worked:</strong> run <code>:checkhealth</code> and <code>:Lazy</code>. If icons render as boxes, your terminal font isn't a Nerd Font — swap it and reload.
+        </div>
+        <div class="panel warn">
+          <strong>tmux users:</strong> this config's tmux prefix is expected to be <kbd>Ctrl+S</kbd>, which is why saving lives on <kbd>Alt+S</kbd> instead of the LazyVim default <kbd>Ctrl+S</kbd> — see <a href="#km-global">Global keymaps</a>.
+        </div>
+      </div>
+    </section>
+
+    <section id="keymaps">
+      <div class="section-head"><span class="num">04</span><h2>Keymap reference</h2></div>
+      <div class="section-body">
+        <p class="lede">The leader hierarchy is organized by <em>workflow</em>, not by plugin — <code>&lt;leader&gt;f</code> for file/find, <code>&lt;leader&gt;r</code> for run/tasks, <code>&lt;leader&gt;d</code> for debug, and so on. <kbd>Ctrl+Shift+*</kbd> bindings need a terminal that forwards those combinations (kitty, WezTerm, Ghostty); the <kbd>&lt;leader&gt;</kbd> equivalents always work as a fallback.</p>
+
+        <h3 id="km-global">Global &amp; VS Code-style</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Alt+S</kbd></td><td>Save (no formatting — this is the default save)</td></tr>
+            <tr><td><kbd>Alt+Shift+S</kbd></td><td>Save with formatting (forces the formatter on demand)</td></tr>
+            <tr><td><kbd>Ctrl+Shift+P</kbd> / <kbd>&lt;leader&gt;P</kbd></td><td>Command palette</td></tr>
+            <tr><td><kbd>Ctrl+P</kbd></td><td>Quick open file</td></tr>
+            <tr><td><kbd>Ctrl+Shift+F</kbd></td><td>Search in files</td></tr>
+            <tr><td><kbd>Ctrl+Shift+E</kbd></td><td>Toggle file explorer</td></tr>
+            <tr><td><kbd>Ctrl+Shift+O</kbd></td><td>Go to symbol in file</td></tr>
+            <tr><td><kbd>Ctrl+Shift+G</kbd></td><td>Source control panel (Neogit)</td></tr>
+            <tr><td><kbd>F2</kbd></td><td>Rename symbol</td></tr>
+            <tr><td><kbd>F12</kbd></td><td>Go to definition</td></tr>
+            <tr><td><kbd>Alt+Up</kbd> / <kbd>Alt+Down</kbd></td><td>Move current line (or selection in visual mode)</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-files">File &amp; find</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;fe</kbd></td><td>File explorer</td></tr>
+            <tr><td><kbd>&lt;leader&gt;be</kbd></td><td>Buffer explorer</td></tr>
+            <tr><td><kbd>&lt;leader&gt;ge</kbd></td><td>Git explorer</td></tr>
+            <tr><td><kbd>&lt;leader&gt;fT</kbd> / <kbd>&lt;leader&gt;ft</kbd></td><td>Terminal (cwd) / Terminal (root dir)</td></tr>
+            <tr><td><kbd>&lt;leader&gt;fN</kbd> / <kbd>&lt;leader&gt;fM</kbd></td><td>New terminal (cwd) / New terminal (root dir)</td></tr>
+            <tr><td><kbd>Ctrl+/</kbd></td><td>Terminal (root dir), from normal or terminal mode</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-code">Code</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;cs</kbd></td><td>Toggle outline sidebar (aerial)</td></tr>
+            <tr><td><kbd>&lt;leader&gt;cb</kbd></td><td>Jump through breadcrumb components</td></tr>
+            <tr><td><kbd>gpd</kbd> / <kbd>gpr</kbd></td><td>Peek definition / references (Glance)</td></tr>
+            <tr><td><kbd>gpi</kbd> / <kbd>gpy</kbd></td><td>Peek implementation / type definition</td></tr>
+            <tr><td><kbd>zR</kbd> / <kbd>zM</kbd></td><td>Open / close all folds</td></tr>
+            <tr><td><kbd>zK</kbd></td><td>Peek folded lines (or hover, off a fold)</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-project">Project &amp; session</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;pp</kbd></td><td>Switch project</td></tr>
+            <tr><td><kbd>&lt;leader&gt;pr</kbd> / <kbd>&lt;leader&gt;ps</kbd></td><td>Restore session / Save session</td></tr>
+            <tr><td><kbd>&lt;leader&gt;pS</kbd></td><td>Search sessions</td></tr>
+            <tr><td><kbd>&lt;leader&gt;pt</kbd></td><td>New project tab — multi-root workflow, see <a href="#remote">§06</a></td></tr>
+            <tr><td><kbd>&lt;leader&gt;pR</kbd></td><td>Remote SSH session — floating terminal, see <a href="#remote">§06</a></td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-run">Run &amp; tasks</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;rr</kbd></td><td>Run task (prompts)</td></tr>
+            <tr><td><kbd>&lt;leader&gt;rn</kbd> / <kbd>&lt;leader&gt;rb</kbd></td><td>Run project task / Run build task</td></tr>
+            <tr><td><kbd>&lt;leader&gt;rf</kbd></td><td>File run action (compiler.nvim)</td></tr>
+            <tr><td><kbd>&lt;leader&gt;ro</kbd></td><td>Toggle task panel</td></tr>
+            <tr><td><kbd>&lt;leader&gt;rl</kbd> / <kbd>&lt;leader&gt;rq</kbd> / <kbd>&lt;leader&gt;rs</kbd></td><td>Restart last / Task actions / Stop task</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-test">Test &amp; debug</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;tr</kbd> / <kbd>&lt;leader&gt;tt</kbd></td><td>Run nearest test / Run file tests</td></tr>
+            <tr><td><kbd>&lt;leader&gt;td</kbd></td><td>Debug nearest test</td></tr>
+            <tr><td><kbd>&lt;leader&gt;ts</kbd> / <kbd>&lt;leader&gt;to</kbd></td><td>Test summary / Test output</td></tr>
+            <tr><td><kbd>&lt;leader&gt;db</kbd></td><td>Toggle breakpoint</td></tr>
+            <tr><td><kbd>&lt;leader&gt;dc</kbd></td><td>Continue</td></tr>
+            <tr><td><kbd>&lt;leader&gt;di</kbd> / <kbd>&lt;leader&gt;dO</kbd> / <kbd>&lt;leader&gt;do</kbd></td><td>Step into / Step over / Step out</td></tr>
+            <tr><td><kbd>&lt;leader&gt;du</kbd></td><td>Toggle dap-ui</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-git">Git</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;gn</kbd> / <kbd>Ctrl+Shift+G</kbd></td><td>Neogit source control panel</td></tr>
+            <tr><td><kbd>&lt;leader&gt;gg</kbd> / <kbd>&lt;leader&gt;gG</kbd></td><td>GitUi floating terminal (root dir / cwd)</td></tr>
+            <tr><td><kbd>Enter</kbd> / <kbd>l</kbd> / <kbd>gd</kbd> <span style="color:var(--text-dim)">(in git explorer)</span></td><td>Open selected file in Diffview</td></tr>
+            <tr><td><kbd>o</kbd> <span style="color:var(--text-dim)">(in git explorer)</span></td><td>Open the file normally instead</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-nav">Navigation &amp; view</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>H</kbd> / <kbd>L</kbd></td><td>Previous / next buffer</td></tr>
+            <tr><td><kbd>s</kbd></td><td>Flash jump</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Flash treesitter jump</td></tr>
+            <tr><td><kbd>&lt;leader&gt;Us</kbd></td><td>Toggle sticky scroll</td></tr>
+            <tr><td><kbd>&lt;leader&gt;Uc</kbd></td><td>Toggle inline color swatches</td></tr>
+            <tr><td><kbd>&lt;leader&gt;Um</kbd></td><td>Toggle minimap</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3 id="km-ai">AI</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>&lt;leader&gt;aa</kbd> / <kbd>&lt;leader&gt;ao</kbd></td><td>Toggle / open Copilot sidebar</td></tr>
+            <tr><td><kbd>&lt;leader&gt;ac</kbd></td><td>Clear chat</td></tr>
+            <tr><td><kbd>&lt;leader&gt;ae</kbd> / <kbd>&lt;leader&gt;ar</kbd></td><td>Explain code / Review code <span style="color:var(--text-dim)">(normal &amp; visual)</span></td></tr>
+            <tr><td><kbd>&lt;leader&gt;af</kbd> / <kbd>&lt;leader&gt;at</kbd></td><td>Fix code / Generate tests <span style="color:var(--text-dim)">(normal &amp; visual)</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head"><span class="num">05</span><h2>Architecture</h2></div>
+      <div class="section-body">
+        <p class="lede">LazyVim base + extras provide the substrate (LSP, Mason, formatting, linting, completion, treesitter). These files are the entire custom layer on top:</p>
+        <div class="tree-diagram">
+lua/config/<br>
+&nbsp;&nbsp;options.lua&nbsp;&nbsp;<span class="note"># globals, formatting/UI defaults, autoformat off by default</span><br>
+&nbsp;&nbsp;keymaps.lua&nbsp;&nbsp;<span class="note"># VS Code-style shortcuts, workflow key groups</span><br>
+&nbsp;&nbsp;autocmds.lua<span class="note"># colorcolumn highlight</span><br>
+&nbsp;&nbsp;ide.lua&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># project/venv/package-manager detection helpers</span><br>
+lua/plugins/<br>
+&nbsp;&nbsp;ui.lua&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># theme, breadcrumbs, sticky scroll, minimap, swatches</span><br>
+&nbsp;&nbsp;navigation.lua<span class="note"># motions, outline, buffer cycling, LSP peek</span><br>
+&nbsp;&nbsp;editor.lua&nbsp;&nbsp;&nbsp;<span class="note"># LSP/treesitter folding</span><br>
+&nbsp;&nbsp;git.lua&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># gitsigns, Diffview, Neogit source-control panel</span><br>
+&nbsp;&nbsp;workflow.lua&nbsp;&nbsp;<span class="note"># sessions, projects, tasks, tests, debugging</span><br>
+&nbsp;&nbsp;languages.lua&nbsp;<span class="note"># Python/JS-TS support, Jupytext, LaTeX</span><br>
+&nbsp;&nbsp;ai.lua&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># Copilot core + chat sidebar</span><br>
+&nbsp;&nbsp;other.lua&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># wakatime</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="remote">
+      <div class="section-head"><span class="num">06</span><h2>Remote &amp; multi-root</h2></div>
+      <div class="section-body prose">
+        <p>Neither gets a dedicated plugin — both lean on plain Neovim primitives to stay dependency-free.</p>
+        <h3>Remote development</h3>
+        <p><kbd>&lt;leader&gt;pR</kbd> prompts for a host and opens <code>ssh &lt;host&gt;</code> in a floating terminal, running your remote box's own Neovim. This is <em>not</em> a local-UI-drives-remote-backend setup the way VS&nbsp;Code Remote-SSH is — it's the lightweight, dependency-free answer. Pair it with <code>tmux</code> on the remote side to keep sessions alive across disconnects.</p>
+        <h3>Multi-root workspaces</h3>
+        <p><kbd>&lt;leader&gt;pt</kbd> opens a new tab, lets you pick from <code>project.nvim</code>'s recent-projects list, runs <code>:tcd</code> scoped to that tab, and opens the explorer there. Each tab becomes its own workspace root — switch tabs (<kbd>gt</kbd> / <kbd>gT</kbd>) to switch "workspace." <kbd>&lt;leader&gt;pp</kbd> still does a plain single-window project switch when a separate tab isn't worth it.</p>
+      </div>
+    </section>
+
+    <section id="tools">
+      <div class="section-head"><span class="num">07</span><h2>External tools</h2></div>
+      <div class="section-body">
+        <p class="lede">Mason installs most editor-side tooling automatically, but these still need to exist in the project or environment.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Language</th><th>Needs</th></tr></thead>
+            <tbody>
+              <tr><td>Python</td><td><code>pytest</code> for tests, plus a project interpreter/virtualenv (<code>.venv</code>/<code>venv</code> auto-detected)</td></tr>
+              <tr><td>JavaScript / TypeScript</td><td><code>jest</code> and/or <code>vitest</code> in the workspace for neotest adapters</td></tr>
+              <tr><td>Debugging</td><td>Mason-managed <code>debugpy</code> and <code>js-debug-adapter</code>; <code>tsx</code> or <code>ts-node</code> to launch TS files directly</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="prose" style="max-width:66ch;"><code>dap.continue()</code> picks up <code>.vscode/launch.json</code> automatically when present, so existing project launch configs stay first-class. Overseer also surfaces <code>npm</code>, <code>task</code>, <code>make</code>, and <code>.vscode/tasks.json</code> alongside its own lightweight Python/Node templates.</p>
+      </div>
+    </section>
+
+    <footer class="page-foot">
+      nvim-config · personal LazyVim configuration · <a href="https://github.com/zangjiucheng/nvim-config" target="_blank" rel="noopener">source on GitHub</a>
+    </footer>
+  </main>
+</div>
+
+<div class="statusline">
+  <span class="mode"><span class="cursor-blink">▌</span> NORMAL</span>
+  <span class="section-now" id="statusSection">Overview</span>
+  <span class="pos" id="statusPos">§ 01/07</span>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">◐</button>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var toggle = document.getElementById('themeToggle');
+  var stored = localStorage.getItem('nvimconfig-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  toggle.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var isDark = current ? current === 'dark' : prefersDark;
+    var next = isDark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('nvimconfig-theme', next);
+  });
+
+  var filterBox = document.getElementById('filterBox');
+  filterBox.addEventListener('input', function () {
+    var q = filterBox.value.trim().toLowerCase();
+    document.querySelectorAll('#tocTree > li').forEach(function (li) {
+      var text = li.textContent.toLowerCase();
+      li.style.display = !q || text.indexOf(q) !== -1 ? '' : 'none';
+    });
+  });
+
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section[id]'));
+  var tocLinks = Array.prototype.slice.call(document.querySelectorAll('[data-toc]'));
+  var tabLinks = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var statusSection = document.getElementById('statusSection');
+  var statusPos = document.getElementById('statusPos');
+
+  function setActive(id) {
+    var idx = sections.findIndex(function (s) { return s.id === id; });
+    if (idx === -1) return;
+    tocLinks.forEach(function (a) {
+      a.removeAttribute('aria-current');
+      if (a.getAttribute('href') === '#' + id) a.setAttribute('aria-current', 'true');
+    });
+    tabLinks.forEach(function (a) { a.removeAttribute('aria-current'); });
+    var heading = sections[idx].querySelector('h2');
+    if (heading) statusSection.textContent = heading.textContent;
+    statusPos.textContent = '§ ' + String(idx + 1).padStart(2, '0') + '/' + sections.length;
+  }
+
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+    sections.forEach(function (s) { observer.observe(s); });
+  }
+})();
+</script>
