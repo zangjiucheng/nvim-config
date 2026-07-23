@@ -39,11 +39,43 @@ return {
       signcolumn = true,
       numhl = true,
       linehl = false,
+      current_line_blame = true,
     },
   },
 
   -- Diff UI
   {
     "sindrets/diffview.nvim",
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewFileHistory",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewClose",
+      "DiffviewRefresh",
+      "DiffviewLog",
+    },
+  },
+
+  -- Full Git panel (VS Code-style source control, Magit-like staging/commit/log)
+  {
+    "NeogitOrg/neogit",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "sindrets/diffview.nvim",
+      "nvim-telescope/telescope.nvim",
+    },
+    cmd = "Neogit",
+    opts = {
+      graph_style = "unicode",
+      integrations = {
+        diffview = true,
+        telescope = true,
+      },
+    },
+    keys = {
+      { "<leader>gn", "<cmd>Neogit<cr>", desc = "Neogit (Source Control)" },
+      { "<C-S-g>", "<cmd>Neogit<cr>", desc = "Source Control" },
+    },
   },
 }

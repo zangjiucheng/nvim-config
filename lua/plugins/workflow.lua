@@ -125,6 +125,49 @@ local function open_terminal(opts)
   end
 end
 
+-- Open (or create) a tab pinned to a project root, VS Code multi-root-ish workflow:
+-- each tab gets its own :tcd, switch tabs to switch "workspace".
+local function open_project_tab()
+  return function()
+    local ok, project_nvim = pcall(require, "project_nvim")
+    local recents = ok and project_nvim.get_recent_projects() or {}
+    if #recents == 0 then
+      vim.notify("No recent projects yet — open one via <leader>pp first", vim.log.levels.WARN)
+      return
+    end
+    -- project.nvim stores history oldest-first; reverse for most-recent-first.
+    for i = 1, math.floor(#recents / 2) do
+      recents[i], recents[#recents - i + 1] = recents[#recents - i + 1], recents[i]
+    end
+    vim.ui.select(recents, { prompt = "New tab for project:" }, function(choice)
+      if not choice then
+        return
+      end
+      vim.cmd("tabnew")
+      vim.cmd("tcd " .. vim.fn.fnameescape(choice))
+      require("neo-tree.command").execute({ toggle = false, dir = choice })
+    end)
+  end
+end
+
+local function open_ssh_terminal()
+  return function()
+    vim.ui.input({ prompt = "SSH host: " }, function(host)
+      if not host or host == "" then
+        return
+      end
+      Snacks.terminal({ "ssh", host }, {
+        win = {
+          position = "float",
+          border = "rounded",
+          width = 0.92,
+          height = 0.9,
+        },
+      })
+    end)
+  end
+end
+
 return {
   -- Session management
   {
@@ -142,12 +185,21 @@ return {
       { "<leader>pr", "<cmd>AutoSession restore<cr>", desc = "Restore Session" },
       { "<leader>ps", "<cmd>AutoSession save<cr>", desc = "Save Session" },
       { "<leader>pS", "<cmd>AutoSession search<cr>", desc = "Search Sessions" },
+      { "<leader>pt", open_project_tab(), desc = "New Project Tab (multi-root)" },
+      { "<leader>pR", open_ssh_terminal(), desc = "Remote SSH Session" },
     },
   },
+
+  -- auto-session already owns session save/restore; LazyVim's default
+  -- persistence.nvim would otherwise run in parallel, doing the same job.
+  { "folke/persistence.nvim", enabled = false },
 
   -- Project root detection + Telescope integration
   {
     "ahmedkhalf/project.nvim",
+    keys = {
+      { "<leader>pp", desc = "Projects" },
+    },
     opts = {
       detection_methods = { "lsp", "pattern" },
       patterns = { ".git", "package.json", "pyproject.toml", "Cargo.toml", "Makefile" },

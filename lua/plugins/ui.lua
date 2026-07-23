@@ -118,5 +118,106 @@ return {
   },
 
   -- Toggle between relative and absolute numbers when switching modes
-  { "sitiom/nvim-numbertoggle" },
+  { "sitiom/nvim-numbertoggle", event = "VeryLazy" },
+
+  -- Breadcrumbs: VS Code-style "file > Class > method" winbar
+  {
+    "Bekaboo/dropbar.nvim",
+    event = "VeryLazy",
+    opts = {},
+    keys = {
+      {
+        "<leader>cb",
+        function()
+          require("dropbar.api").pick()
+        end,
+        desc = "Pick Breadcrumb",
+      },
+    },
+  },
+
+  -- Sticky scroll: pin the current function/class header to the top
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    event = "VeryLazy",
+    opts = {
+      max_lines = 3,
+      multiline_threshold = 1,
+      trim_scope = "outer",
+      mode = "cursor",
+      separator = nil,
+    },
+    keys = {
+      {
+        "<leader>Us",
+        function()
+          require("treesitter-context").toggle()
+        end,
+        desc = "Toggle Sticky Scroll",
+      },
+    },
+  },
+
+  -- Inline color swatches for hex/rgb/hsl/named/tailwind colors
+  {
+    "brenoprata10/nvim-highlight-colors",
+    event = "VeryLazy",
+    opts = {
+      render = "virtual",
+      virtual_symbol = "■",
+      virtual_symbol_position = "inline",
+      virtual_symbol_prefix = " ",
+      virtual_symbol_suffix = "",
+      enable_named_colors = true,
+      enable_tailwind = true,
+    },
+    keys = {
+      { "<leader>Uc", "<cmd>HighlightColors Toggle<cr>", desc = "Toggle Color Swatches" },
+    },
+  },
+
+  -- Smooth scrolling through the already-present snacks.nvim
+  {
+    "folke/snacks.nvim",
+    opts = function(_, opts)
+      opts.scroll = vim.tbl_deep_extend("force", opts.scroll or {}, { enabled = true })
+    end,
+  },
+
+  -- Minimap: VS Code-style code overview with git/diagnostic markers
+  {
+    "Isrothy/neominimap.nvim",
+    version = "v3.x.x",
+    lazy = false,
+    init = function()
+      vim.opt.wrap = false
+      vim.g.neominimap = {
+        auto_enable = true,
+        exclude_filetypes = {
+          "help",
+          "neo-tree",
+          "aerial",
+          "Trouble",
+          "trouble",
+          "OverseerList",
+          "copilot-chat",
+          "dap-repl",
+          "dapui_scopes",
+          "dapui_stacks",
+          "dapui_watches",
+          "dapui_console",
+        },
+        exclude_buftypes = {
+          "nofile",
+          "nowrite",
+          "quickfix",
+          "terminal",
+          "prompt",
+        },
+      }
+    end,
+    keys = {
+      { "<leader>Um", "<cmd>Neominimap Toggle<cr>", desc = "Toggle Minimap" },
+    },
+  },
 }

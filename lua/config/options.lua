@@ -4,7 +4,8 @@
 local opt = vim.opt
 
 -- Global toggles
-vim.g.autoformat = true
+-- Default save does NOT format; use <M-S-s> (Save + Format) or <leader>cf to format on demand.
+vim.g.autoformat = false
 vim.env.NODE_OPTIONS = "--experimental-sqlite"
 
 -- UI
