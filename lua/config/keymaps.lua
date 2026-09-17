@@ -92,3 +92,34 @@ if ok then
     { "gp", group = "peek" },
   })
 end
+
+-- Quick Fix: VS Code's Cmd+. ------------------------------------------------
+-- Ghostty sends Cmd+. as ESC-. (see shared/modules/ghostty.nix), which arrives
+-- here as <M-.>. On a misspelled word this offers spelling corrections;
+-- anywhere else it falls back to LSP code actions, which is what Cmd+. does in
+-- VS Code. `spell` is only on in prose buffers, so code stays on code actions.
+local function quick_fix()
+  local bad = vim.wo.spell and vim.fn.spellbadword()[1] or ""
+  if vim.fn.mode() == "n" and bad ~= "" then
+    local suggestions = vim.fn.spellsuggest(bad, 25)
+    if #suggestions == 0 then
+      vim.notify("No spelling suggestions for " .. bad, vim.log.levels.INFO)
+      return
+    end
+    vim.ui.select(suggestions, { prompt = "Spelling: " .. bad }, function(_, idx)
+      if idx then
+        -- `Nz=` applies the Nth entry of the very list spellsuggest() returns,
+        -- so Vim locates and replaces the word itself — no manual text surgery.
+        vim.cmd("normal! " .. idx .. "z=")
+      end
+    end)
+    return
+  end
+  vim.lsp.buf.code_action()
+end
+
+vim.keymap.set({ "n", "x" }, "<M-.>", quick_fix, { desc = "Quick Fix / Spelling" })
+vim.keymap.set("i", "<M-.>", function()
+  vim.cmd("stopinsert")
+  vim.schedule(quick_fix)
+end, { desc = "Quick Fix / Spelling" })
