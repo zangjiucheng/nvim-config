@@ -11,6 +11,52 @@
 -- Buffer-local <leader>l… aliases for the standard <localleader>l… mappings.
 -- Buffer-local on purpose: LazyVim's global <leader>l (":Lazy") keeps working
 -- in every other filetype.
+-- VimTeX's cs*/ds*/ts* editing verbs sit on top of Flash (`s` is mapped in
+-- normal, visual AND operator-pending mode) and on the native till-s motion:
+-- `ds<label>` and `cs<label>` misfire whenever a flash label is e/c/d/$, `ts`
+-- is shadowed outright, and every c/d/t followed by s waits out `timeoutlen`.
+-- Move all 16 behind <localleader> so the native keys stay untouched.
+local surround_maps = {
+  ["c$"] = { "<plug>(vimtex-env-change-math)", "Change Math Env" },
+  ["cc"] = { "<plug>(vimtex-cmd-change)", "Change Command" },
+  ["cd"] = { "<plug>(vimtex-delim-change-math)", "Change Delimiter" },
+  ["ce"] = { "<plug>(vimtex-env-change)", "Change Environment" },
+  ["d$"] = { "<plug>(vimtex-env-delete-math)", "Delete Math Env" },
+  ["dc"] = { "<plug>(vimtex-cmd-delete)", "Delete Command" },
+  ["dd"] = { "<plug>(vimtex-delim-delete)", "Delete Delimiter" },
+  ["de"] = { "<plug>(vimtex-env-delete)", "Delete Environment" },
+  ["t$"] = { "<plug>(vimtex-env-toggle-math)", "Toggle Inline/Display Math" },
+  ["tD"] = { "<plug>(vimtex-delim-toggle-modifier-reverse)", "Toggle Delimiter (reverse)" },
+  ["tb"] = { "<plug>(vimtex-cmd-toggle-break)", "Toggle Command Line Break" },
+  ["tc"] = { "<plug>(vimtex-cmd-toggle-star)", "Toggle Command Star" },
+  ["td"] = { "<plug>(vimtex-delim-toggle-modifier)", "Toggle \\left/\\right" },
+  ["te"] = { "<plug>(vimtex-env-toggle)", "Toggle Environment" },
+  ["tf"] = { "<plug>(vimtex-cmd-toggle-frac)", "Toggle Frac / Inline Division" },
+  ["ts"] = { "<plug>(vimtex-env-toggle-star)", "Toggle Environment Star" },
+}
+
+-- Exactly the lhs list VimTeX would otherwise install, so nothing is left
+-- half-bound. Order matters only for readability.
+local disabled_vimtex_maps = {
+  "K", -- conflicts with LSP hover (kept from LazyVim's tex extra)
+  "cs$",
+  "csc",
+  "csd",
+  "cse",
+  "ds$",
+  "dsc",
+  "dsd",
+  "dse",
+  "ts$",
+  "tsD",
+  "tsb",
+  "tsc",
+  "tsd",
+  "tse",
+  "tsf",
+  "tss",
+}
+
 local leader_maps = {
   ll = { "<plug>(vimtex-compile)", "Compile (toggle continuous)" },
   lg = { "<plug>(vimtex-compile-ss)", "Compile Once" },
@@ -39,9 +85,22 @@ local function attach_latex_keymaps(buf)
     })
   end
 
+  for lhs, spec in pairs(surround_maps) do
+    vim.keymap.set("n", "<localleader>" .. lhs, spec[1], {
+      buffer = buf,
+      desc = spec[2],
+      remap = true,
+    })
+  end
+
   local ok, wk = pcall(require, "which-key")
   if ok then
-    wk.add({ { "<leader>l", group = "latex", buffer = buf } })
+    wk.add({
+      { "<leader>l", group = "latex", buffer = buf },
+      { "<localleader>c", group = "change", buffer = buf },
+      { "<localleader>d", group = "delete", buffer = buf },
+      { "<localleader>t", group = "toggle", buffer = buf },
+    })
   end
 end
 
@@ -73,6 +132,13 @@ return {
     -- `nvim --headless -c "VimtexInverseSearch …"` process launched by Skim
     -- talks to. Lazy-loading silently breaks inverse search.
     lazy = false,
+    -- LazyVim's tex extra sets vimtex_mappings_disable in its own `config`,
+    -- which runs after `init` and would clobber anything set there. Later
+    -- specs win for `config`, so own it and re-apply what the extra did.
+    config = function()
+      vim.g.vimtex_mappings_disable = { ["n"] = disabled_vimtex_maps }
+      vim.g.vimtex_quickfix_method = vim.fn.executable("pplatex") == 1 and "pplatex" or "latexlog"
+    end,
     init = function()
       -- Compiler -------------------------------------------------------------
       vim.g.vimtex_compiler_method = "latexmk"
