@@ -129,13 +129,5 @@ return {
     end,
   },
 
-  -- LaTeX tooling
-  {
-    "lervag/vimtex",
-    ft = { "tex" },
-    init = function()
-      vim.g.vimtex_view_method = "skim"
-      vim.g.vimtex_compiler_method = "latexmk"
-    end,
-  },
+  -- LaTeX/Typst tooling lives in lua/plugins/latex.lua and lua/plugins/typst.lua.
 }
