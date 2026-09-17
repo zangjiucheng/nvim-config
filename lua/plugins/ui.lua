@@ -1,3 +1,8 @@
+-- Filetypes where the VS Code-style chrome is switched off, so a document
+-- reads like a document. Window-local options for the same buffers live in
+-- lua/config/autocmds.lua.
+local prose_filetypes = { "tex", "plaintex", "bib", "typst", "markdown" }
+
 return {
   -- Visual theme with solid panels
   {
@@ -52,6 +57,16 @@ return {
         hl.AerialLine = { bg = panel_alt }
         hl.DapUIFloatNormal = { bg = panel_bg }
         hl.DapUIFloatBorder = { bg = panel_bg, fg = panel_border }
+        -- AI ghost text. Tokyonight's own CopilotSuggestion is #444a73, which
+        -- is darker than both Comment and NonText and nearly invisible on the
+        -- moon background. fg_dark stays clearly secondary but is actually
+        -- readable; italic keeps a suggestion distinguishable from real text.
+        -- Raise to colors.fg if you want it brighter still.
+        local ghost = { fg = colors.fg_dark, italic = true }
+        hl.CopilotSuggestion = ghost
+        hl.CopilotAnnotation = ghost
+        hl.BlinkCmpGhostText = ghost
+
         hl.CopilotChatHeader = { fg = colors.blue1, bold = true }
         hl.CopilotChatSeparator = { fg = panel_border }
         hl.CopilotChatHelp = { fg = colors.fg_gutter }
@@ -124,7 +139,23 @@ return {
   {
     "Bekaboo/dropbar.nvim",
     event = "VeryLazy",
-    opts = {},
+    opts = function(_, opts)
+      -- Grab dropbar's own default guard before setup merges ours on top of it,
+      -- so special buffers (help, terminals, huge files) stay excluded too.
+      local default_enable = require("dropbar.configs").opts.bar.enable
+      opts.bar = vim.tbl_deep_extend("force", opts.bar or {}, {
+        enable = function(buf, win, info)
+          buf = (buf == nil or buf == 0) and vim.api.nvim_get_current_buf() or buf
+          if not vim.api.nvim_buf_is_valid(buf) then
+            return false
+          end
+          if vim.tbl_contains(prose_filetypes, vim.bo[buf].filetype) then
+            return false
+          end
+          return default_enable(buf, win, info)
+        end,
+      })
+    end,
     keys = {
       {
         "<leader>cb",
@@ -146,6 +177,9 @@ return {
       trim_scope = "outer",
       mode = "cursor",
       separator = nil,
+      on_attach = function(buf)
+        return not vim.tbl_contains(prose_filetypes, vim.bo[buf].filetype)
+      end,
     },
     keys = {
       {
@@ -188,12 +222,18 @@ return {
   {
     "Isrothy/neominimap.nvim",
     version = "v3.x.x",
-    lazy = false,
+    -- Off by default: it eats a column of the window and is only occasionally
+    -- wanted. Loading on the command keeps its ~3.5ms plugin file out of
+    -- startup entirely; `init` still runs eagerly, so the config below applies.
+    cmd = "Neominimap",
     init = function()
       vim.opt.wrap = false
       vim.g.neominimap = {
-        auto_enable = true,
-        exclude_filetypes = {
+        -- Nothing is lost by starting disabled: the api's enable() creates the
+        -- autocmds itself, and the initial enabled state is read from this, so
+        -- the first <leader>Um toggles ON rather than off.
+        auto_enable = false,
+        exclude_filetypes = vim.list_extend(vim.deepcopy(prose_filetypes), {
           "help",
           "neo-tree",
           "aerial",
@@ -206,7 +246,7 @@ return {
           "dapui_stacks",
           "dapui_watches",
           "dapui_console",
-        },
+        }),
         exclude_buftypes = {
           "nofile",
           "nowrite",
