@@ -130,6 +130,33 @@ return {
       vim.g.copilot_nes_debounce = 500
     end,
     opts = {
+      -- VS Code-style inline suggestions: ghost text appears while you type,
+      -- and can be taken a word at a time instead of all-or-nothing.
+      suggestion = {
+        enabled = true,
+        auto_trigger = true,
+        -- Never draw ghost text underneath an open blink.cmp menu.
+        hide_during_completion = true,
+        -- The plugin default is 15ms, which fires a request at almost every
+        -- keystroke. 100ms still feels instant while typing fast maths.
+        debounce = 100,
+        keymap = {
+          -- Accepting the whole suggestion goes through <Tab>
+          -- (LazyVim.cmp.actions.ai_accept, wired in config below) and <M-l>.
+          accept = "<M-l>",
+          -- VS Code's Cmd+Right (editor.action.inlineSuggest.acceptNextWord).
+          -- Alt+Right is the version a terminal can actually deliver.
+          accept_word = "<M-Right>",
+          -- Ctrl+Shift+* needs a terminal that forwards it (ghostty/kitty/
+          -- wezterm), matching the convention in lua/config/keymaps.lua.
+          accept_line = "<C-S-Right>",
+          next = "<M-]>",
+          prev = "<M-[>",
+          dismiss = "<C-]>",
+          -- Panic switch when ghost text gets in the way mid-paragraph.
+          toggle_auto_trigger = "<M-\\>",
+        },
+      },
       nes = {
         enabled = true,
         keymap = {
@@ -138,6 +165,78 @@ return {
           dismiss = "<Esc>",
         },
       },
+    },
+    config = function(_, opts)
+      require("copilot").setup(opts)
+      -- LazyVim's <Tab> chain is snippet_forward -> ai_nes -> ai_accept.
+      -- Without the ai.copilot extra nothing defines ai_accept, so <Tab> did
+      -- not accept suggestions at all. Snippet jumps still win over it.
+      LazyVim.cmp.actions.ai_accept = function()
+        if require("copilot.suggestion").is_visible() then
+          LazyVim.create_undo()
+          require("copilot.suggestion").accept()
+          return true
+        end
+      end
+    end,
+    keys = {
+      -- Alias for terminals that swallow Alt+Right (it falls through to the
+      -- normal key when no suggestion is showing).
+      {
+        "<C-Right>",
+        function()
+          require("copilot.suggestion").accept_word()
+        end,
+        mode = "i",
+        desc = "Accept AI Suggestion (word)",
+      },
+    },
+  },
+
+  -- Inline AI assistant: VS Code's Cmd+I. Ask in place, it edits the buffer.
+  --
+  -- Separate from CopilotChat above on purpose: CopilotChat is Copilot-only and
+  -- answers in a sidebar, this one writes into the buffer and can talk to any
+  -- provider. Pure Lua, no build step, and both dependencies are already here.
+  {
+    "olimorris/codecompanion.nvim",
+    dependencies = { "nvim-lua/plenary.nvim", "nvim-treesitter/nvim-treesitter" },
+    cmd = { "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions", "CodeCompanionCmd" },
+    opts = function()
+      -- Use DeepSeek when its key is exported, otherwise fall back to the
+      -- Copilot session that is already authenticated. Export DEEPSEEK_API_KEY
+      -- (or swap the string) to switch provider; `:CodeCompanionChat openai`
+      -- and friends still work per-invocation.
+      local adapter = (vim.env.DEEPSEEK_API_KEY or "") ~= "" and "deepseek" or "copilot"
+      return {
+        -- Note: the top-level key is `interactions`, not the `strategies`
+        -- used by older releases and most blog posts; unknown keys are
+        -- dropped silently, so the wrong one looks like it works.
+        interactions = {
+          inline = { adapter = adapter },
+          chat = { adapter = adapter },
+        },
+        display = {
+          -- Only used when the inline assistant has to create a new buffer;
+          -- edits to the current buffer happen in place.
+          inline = { layout = "vertical" },
+        },
+        opts = { log_level = "ERROR" },
+      }
+    end,
+    keys = {
+      -- Alt+I is what a terminal can actually deliver. See the README note on
+      -- forwarding literal Cmd+I from ghostty.
+      { "<M-i>", "<cmd>CodeCompanion<cr>", mode = "n", desc = "Inline AI (ask)" },
+      { "<M-i>", ":CodeCompanion<cr>", mode = "x", desc = "Inline AI (rewrite selection)" },
+      { "<M-i>", "<esc><cmd>CodeCompanion<cr>", mode = "i", desc = "Inline AI (ask)" },
+      {
+        "<leader>ai",
+        "<cmd>CodeCompanionChat Toggle<cr>",
+        mode = { "n", "v" },
+        desc = "Toggle AI Chat (multi-provider)",
+      },
+      { "<leader>aA", "<cmd>CodeCompanionActions<cr>", mode = { "n", "x" }, desc = "AI Action Palette" },
     },
   },
 }
