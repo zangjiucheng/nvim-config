@@ -24,6 +24,35 @@ return {
     },
   },
 
+  -- GitHub permalinks (pinned to a commit, unlike the default branch-based <leader>gB/gY)
+  {
+    "folke/snacks.nvim",
+    keys = {
+      {
+        "<leader>gp",
+        function()
+          Snacks.gitbrowse({ what = "permalink" })
+        end,
+        mode = { "n", "x" },
+        desc = "Git Permalink (open)",
+      },
+      {
+        "<leader>gP",
+        function()
+          Snacks.gitbrowse({
+            what = "permalink",
+            open = function(url)
+              vim.fn.setreg("+", url)
+            end,
+            notify = false,
+          })
+        end,
+        mode = { "n", "x" },
+        desc = "Git Permalink (copy)",
+      },
+    },
+  },
+
   -- Inline git signs and line number highlights
   {
     "lewis6991/gitsigns.nvim",
