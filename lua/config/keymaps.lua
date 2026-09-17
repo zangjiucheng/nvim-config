@@ -8,6 +8,34 @@ vim.keymap.set("n", "<leader>w-", "<cmd>resize -2<cr>", { desc = "Decrease Windo
 vim.keymap.set("n", "<leader>w+", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
 vim.keymap.set("t", "<Esc><Esc>", [[<C-\><C-n>]], { desc = "Terminal Normal Mode" })
 
+-- Fast insert-mode exit: `jk` -> <Esc> ---------------------------------------
+-- Deliberately NOT a plain `inoremap jk <Esc>`: that would make Neovim wait
+-- `timeoutlen` (300ms here) after every literal `j`, so typing "just" or
+-- "adjacent" visibly stutters. Instead only `k` is mapped, and it rewrites the
+-- preceding `j` when that `j` was typed moments ago. Zero pending-key timeout.
+local jk = { last = 0, window_ns = 200 * 1e6 }
+
+vim.api.nvim_create_autocmd("InsertCharPre", {
+  group = vim.api.nvim_create_augroup("JkEscape", { clear = true }),
+  desc = "Timestamp `j` for the jk escape mapping",
+  callback = function()
+    if vim.v.char == "j" then
+      jk.last = vim.uv.hrtime()
+    end
+  end,
+})
+
+vim.keymap.set("i", "k", function()
+  local col = vim.fn.col(".")
+  if col > 1 and (vim.uv.hrtime() - jk.last) < jk.window_ns then
+    if vim.api.nvim_get_current_line():sub(col - 1, col - 1) == "j" then
+      jk.last = 0
+      return "<BS><Esc>"
+    end
+  end
+  return "k"
+end, { expr = true, desc = "jk -> Esc" })
+
 -- VS Code-style shortcuts ---------------------------------------------------
 -- (Ctrl+Shift+* keys need a terminal that forwards them, e.g. kitty/wezterm/
 -- ghostty; the <leader> equivalents below always work as fallbacks.)
