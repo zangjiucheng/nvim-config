@@ -175,8 +175,32 @@ return {
     lazy = false,
     ---@type AutoSession.Config
     opts = {
-      auto_restore = false,
+      -- VS Code "reopen folder": the session is keyed by cwd, so running
+      -- `nvim` inside a project restores that project's buffers, splits and
+      -- tabs. Sessions live in stdpath("data")/sessions.
+      auto_restore = true,
+      auto_save = true,
       suppressed_dirs = { "~/", "~/Dev", "~/Downloads", "~/Documents", "~/Desktop/" },
+      -- A lone dashboard is not a workspace worth remembering.
+      bypass_save_filetypes = { "snacks_dashboard", "dashboard", "ministarter", "alpha" },
+      -- Panels are not backed by files, so :mksession restores them as broken
+      -- empty windows. Close them first and the restored layout is exactly the
+      -- file windows you were editing.
+      close_filetypes_on_save = {
+        "checkhealth",
+        "neo-tree",
+        "aerial",
+        "trouble",
+        "Trouble",
+        "OverseerList",
+        "copilot-chat",
+        "codecompanion",
+        "dap-repl",
+        "dapui_scopes",
+        "dapui_stacks",
+        "dapui_watches",
+        "dapui_console",
+      },
       session_lens = {
         load_on_setup = true,
       },
