@@ -110,7 +110,9 @@ local function kernel_name_for(python)
   -- meaningfully); fall back to the project directory for a bare `.venv`.
   local venv_dir = vim.fs.basename(vim.fs.dirname(vim.fs.dirname(python)))
   local base = venv_dir
-  if not base or base == "" or base:match("^%.?venv$") or base == "env" then
+  -- A nix-store interpreter (devenv) is named after the derivation, not the
+  -- project, so it is no more useful than a bare `.venv`.
+  if not base or base == "" or base:match("^%.?venv$") or base == "env" or python:match("^/nix/store/") then
     local ok, ide = pcall(require, "config.ide")
     local root = ok and ide.python_root and ide.python_root(vim.api.nvim_buf_get_name(0))
     base = root and vim.fs.basename(root) or base
@@ -137,6 +139,37 @@ local function active_python()
   if python and vim.fn.executable(python) == 1 then
     return python, "project"
   end
+
+  -- Last resort: whatever python3 the shell provides. Under devenv/direnv this
+  -- is the project's nix-store interpreter, which is the *only* environment
+  -- such a project has — `languages.python` with no venv means no .venv and no
+  -- VIRTUAL_ENV, so the two lookups above find nothing.
+  local shell_python = vim.fn.exepath("python3")
+  if shell_python ~= "" then
+    return shell_python, shell_python:match("^/nix/store/") and "nix/devenv" or "PATH"
+  end
+end
+
+---Ask the interpreter about itself. The path alone lies: a pyenv shim does not
+---look like a nix path but execs one, so `python` can be read-only even when the
+---path suggests otherwise.
+---@return { prefix: string, ipykernel: boolean, writable: boolean }|nil
+local function probe_python(python)
+  local code = table.concat({
+    "import sys, os, importlib.util",
+    "print(sys.prefix)",
+    "print(1 if importlib.util.find_spec('ipykernel') else 0)",
+    "print(1 if os.access(os.path.join(sys.prefix, 'lib'), os.W_OK) else 0)",
+  }, "\n")
+  local res = vim.system({ python, "-c", code }, { text = true }):wait(10000)
+  if not res or res.code ~= 0 then
+    return nil
+  end
+  local prefix, kernel, writable = res.stdout:match("^(.-)%s*\n(%d)%s*\n(%d)")
+  if not prefix then
+    return nil
+  end
+  return { prefix = prefix, ipykernel = kernel == "1", writable = writable == "1" }
 end
 
 local function kernel_from_venv()
@@ -152,6 +185,34 @@ local function kernel_from_venv()
   if vim.tbl_contains(available, name) then
     vim.cmd("MoltenInit " .. name)
     return
+  end
+
+  -- The kernelspec itself lands in ~/Library/Jupyter, writable even for a nix
+  -- interpreter; only the ipykernel *module* must already be importable.
+  local info = probe_python(python)
+  if not info then
+    vim.notify("Could not run " .. python, vim.log.levels.ERROR)
+    return
+  end
+  if not info.ipykernel then
+    if not info.writable then
+      vim.notify(
+        ("ipykernel is missing and %s is read-only, so pip cannot install into it.\n\n"):format(info.prefix)
+          .. "For a devenv/nix project, add it to devenv.nix:\n"
+          .. "  languages.python.package = pkgs.python3.withPackages (ps: [ ps.ipykernel ]);\n"
+          .. "then re-enter the shell and try again.",
+        vim.log.levels.WARN
+      )
+      return
+    end
+    if vim.fn.confirm("ipykernel is missing from " .. info.prefix .. ". Install it?", "&Install\n&Cancel", 1) ~= 1 then
+      return
+    end
+    local res = vim.system({ python, "-m", "pip", "install", "ipykernel" }, { text = true }):wait(180000)
+    if not res or res.code ~= 0 then
+      vim.notify("pip install ipykernel failed:\n" .. ((res and res.stderr) or "timed out"), vim.log.levels.ERROR)
+      return
+    end
   end
 
   vim.ui.select({ "Register it", "Cancel" }, {
