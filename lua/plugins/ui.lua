@@ -24,6 +24,12 @@ return {
         local panel_border = colors.blue1
         local panel_alt = colors.bg_highlight
 
+        -- Rulers at 80/120 as a stripe *darker* than the background, so it
+        -- reads as a recessed guide rather than a highlighted column. Defined
+        -- here rather than in a BufReadPost autocmd, which re-set a global
+        -- highlight on every file open and lost to the theme on reload.
+        hl.ColorColumn = { bg = colors.bg_dark1 }
+
         hl.NormalFloat = { bg = panel_bg, fg = colors.fg }
         hl.FloatBorder = { bg = panel_bg, fg = panel_border }
         hl.FloatTitle = { bg = panel_bg, fg = panel_border, bold = true }
