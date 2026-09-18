@@ -21,3 +21,20 @@ opt.winborder = "rounded"
 -- LazyVim's default list omits it. `skiprtp` stays — without it the session
 -- serialises the whole runtimepath and fights lazy.nvim on the next start.
 opt.sessionoptions:append("localoptions")
+
+-- Python provider
+-- Pinned to a dedicated venv (pynvim + jupyter_client) rather than `python3`,
+-- which is a pyenv shim and changes with whatever .python-version is nearest.
+-- molten-nvim is a remote plugin and talks to Neovim through this interpreter;
+-- it is deliberately NOT the interpreter your notebooks run on — that is the
+-- Jupyter kernel you pick with :MoltenInit.
+local python_host = vim.fn.expand("~/.local/share/nvim/python-host/bin/python")
+if vim.fn.executable(python_host) == 1 then
+  -- The nix-wrapped nvim starts with
+  --   --cmd "lua ...vim.g.loaded_python3_provider=0"
+  -- which hard-disables every remote provider. Clearing it here (before
+  -- anything calls has("python3")) re-enables Python without rebuilding
+  -- neovim with withPython3 = true.
+  vim.g.loaded_python3_provider = nil
+  vim.g.python3_host_prog = python_host
+end

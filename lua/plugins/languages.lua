@@ -110,24 +110,7 @@ return {
     end,
   },
 
-  {
-    "GCBallesteros/jupytext.nvim",
-    lazy = false,
-    config = function()
-      require("jupytext").setup({
-        style = "percent",
-        output_extension = "py",
-        force_ft = "python",
-        custom_language_formatting = {
-          python = {
-            extension = "py",
-            style = "percent",
-            force_ft = "python",
-          },
-        },
-      })
-    end,
-  },
+  -- Jupyter/notebook tooling lives in lua/plugins/jupyter.lua.
 
   -- LaTeX/Typst tooling lives in lua/plugins/latex.lua and lua/plugins/typst.lua.
 }
