@@ -106,19 +106,46 @@ end
 -- closes the gap: take the venv Neovim already resolved and use its kernel,
 -- registering it the first time.
 local function kernel_name_for(python)
-  local ok, ide = pcall(require, "config.ide")
-  local root = ok and ide.python_root and ide.python_root(vim.api.nvim_buf_get_name(0))
-  local base = root and vim.fs.basename(root) or vim.fs.basename(vim.fs.dirname(vim.fs.dirname(python)))
+  -- Prefer the venv's own directory name (pyenv/poetry/conda envs are named
+  -- meaningfully); fall back to the project directory for a bare `.venv`.
+  local venv_dir = vim.fs.basename(vim.fs.dirname(vim.fs.dirname(python)))
+  local base = venv_dir
+  if not base or base == "" or base:match("^%.?venv$") or base == "env" then
+    local ok, ide = pcall(require, "config.ide")
+    local root = ok and ide.python_root and ide.python_root(vim.api.nvim_buf_get_name(0))
+    base = root and vim.fs.basename(root) or base
+  end
   return (base or "project"):lower():gsub("[^%w%-_]", "-")
 end
 
+---The interpreter the user actually selected, in order of authority.
+local function active_python()
+  -- venv-selector is the source of truth when it has a selection: it knows
+  -- about venvs outside the project (pyenv, poetry, conda caches) and only
+  -- exports VIRTUAL_ENV for some environment types, so checking the
+  -- environment alone misses most of them.
+  local ok, vs = pcall(require, "venv-selector")
+  if ok and vs.python then
+    local python = vs.python()
+    if python and python ~= "" and vim.fn.executable(python) == 1 then
+      return python, vs.source and vs.source() or "venv-selector"
+    end
+  end
+  -- Otherwise fall back to VIRTUAL_ENV / a project-local .venv.
+  local ok_ide, ide = pcall(require, "config.ide")
+  local python = ok_ide and ide.python_command and ide.python_command(vim.api.nvim_buf_get_name(0))
+  if python and vim.fn.executable(python) == 1 then
+    return python, "project"
+  end
+end
+
 local function kernel_from_venv()
-  local ok, ide = pcall(require, "config.ide")
-  local python = ok and ide.python_command and ide.python_command(vim.api.nvim_buf_get_name(0))
-  if not python or vim.fn.executable(python) == 0 then
+  local python, source = active_python()
+  if not python then
     vim.notify("No virtualenv found. Pick one with <leader>cv first.", vim.log.levels.WARN)
     return
   end
+  vim.notify(("Using %s (%s)"):format(python, source or "?"), vim.log.levels.INFO)
 
   local name = kernel_name_for(python)
   local available = vim.fn.MoltenAvailableKernels() or {}
