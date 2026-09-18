@@ -125,6 +125,64 @@ local function open_terminal(opts)
   end
 end
 
+-- VS Code's terminal dropdown: list the open terminals and jump to one.
+local function terminal_buffers()
+  local terms = {}
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype == "snacks_terminal" then
+      terms[#terms + 1] = buf
+    end
+  end
+  table.sort(terms, function(a, b)
+    local ia = (vim.b[a].snacks_terminal or {}).id or a
+    local ib = (vim.b[b].snacks_terminal or {}).id or b
+    return ia < ib
+  end)
+  return terms
+end
+
+local function pick_terminal()
+  local terms = terminal_buffers()
+  if #terms == 0 then
+    vim.notify("No open terminals", vim.log.levels.INFO)
+    return
+  end
+
+  local labels = {}
+  for i, buf in ipairs(terms) do
+    local id = (vim.b[buf].snacks_terminal or {}).id or i
+    local cwd = vim.api.nvim_buf_get_name(buf):match("term://(.-)//") or ""
+    local visible = vim.fn.bufwinid(buf) ~= -1 and "" or "  (hidden)"
+    labels[i] = ("%d: %s%s"):format(id, vim.fn.fnamemodify(cwd, ":t"), visible)
+  end
+
+  vim.ui.select(labels, { prompt = "Terminal" }, function(_, idx)
+    if not idx then
+      return
+    end
+    local buf = terms[idx]
+    local win = vim.fn.bufwinid(buf)
+    if win ~= -1 then
+      vim.api.nvim_set_current_win(win)
+    else
+      -- Hidden terminals come back in the bottom panel, where they started.
+      vim.cmd("botright split")
+      vim.api.nvim_win_set_buf(0, buf)
+      vim.api.nvim_win_set_height(0, math.max(math.floor(vim.o.lines * 0.3), 8))
+    end
+    vim.cmd("startinsert")
+  end)
+end
+
+local function kill_terminal()
+  local buf = vim.api.nvim_get_current_buf()
+  if vim.bo[buf].filetype ~= "snacks_terminal" then
+    vim.notify("Not a terminal window", vim.log.levels.WARN)
+    return
+  end
+  vim.api.nvim_buf_delete(buf, { force = true })
+end
+
 -- Open (or create) a tab pinned to a project root, VS Code multi-root-ish workflow:
 -- each tab gets its own :tcd, switch tabs to switch "workspace".
 local function open_project_tab()
@@ -287,6 +345,8 @@ return {
       { "<leader>fp", false },
       { "<leader>fT", false },
       { "<leader>ft", false },
+      { "<leader>fl", pick_terminal, desc = "List/Switch Terminals" },
+      { "<leader>fk", kill_terminal, desc = "Kill Terminal", mode = { "n", "t" } },
       { "<leader>fN", open_terminal({ new = true }), desc = "New Terminal (cwd)" },
       { "<leader>fM", open_terminal({ root = true, new = true }), desc = "New Terminal (Root Dir)" },
       { "<c-/>", false, mode = { "n", "t" } },
