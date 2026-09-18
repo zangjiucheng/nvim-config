@@ -97,8 +97,65 @@ local function run_cell()
   vim.cmd("noautocmd MoltenEvaluateVisual")
 end
 
+-- Bridging venv-selector to the kernel ---------------------------------------
+-- Three different Pythons are in play and only one of them runs your code:
+--   * g:python3_host_prog  - carries molten's RPC. Never changes.
+--   * <leader>cv           - venv-selector, sets the venv for the LSP/DAP.
+--   * the Jupyter kernel   - what cells actually execute on.
+-- Picking a venv does NOT change the kernel, which is the confusing part. This
+-- closes the gap: take the venv Neovim already resolved and use its kernel,
+-- registering it the first time.
+local function kernel_name_for(python)
+  local ok, ide = pcall(require, "config.ide")
+  local root = ok and ide.python_root and ide.python_root(vim.api.nvim_buf_get_name(0))
+  local base = root and vim.fs.basename(root) or vim.fs.basename(vim.fs.dirname(vim.fs.dirname(python)))
+  return (base or "project"):lower():gsub("[^%w%-_]", "-")
+end
+
+local function kernel_from_venv()
+  local ok, ide = pcall(require, "config.ide")
+  local python = ok and ide.python_command and ide.python_command(vim.api.nvim_buf_get_name(0))
+  if not python or vim.fn.executable(python) == 0 then
+    vim.notify("No virtualenv found. Pick one with <leader>cv first.", vim.log.levels.WARN)
+    return
+  end
+
+  local name = kernel_name_for(python)
+  local available = vim.fn.MoltenAvailableKernels() or {}
+  if vim.tbl_contains(available, name) then
+    vim.cmd("MoltenInit " .. name)
+    return
+  end
+
+  vim.ui.select({ "Register it", "Cancel" }, {
+    prompt = ("No Jupyter kernel %q. Register this venv as one?"):format(name),
+  }, function(choice)
+    if choice ~= "Register it" then
+      return
+    end
+    vim.system(
+      { python, "-m", "ipykernel", "install", "--user", "--name", name, "--display-name", "Python (" .. name .. ")" },
+      { text = true },
+      function(res)
+        vim.schedule(function()
+          if res.code == 0 then
+            vim.notify("Registered kernel: " .. name)
+            vim.cmd("MoltenInit " .. name)
+          else
+            vim.notify(
+              "ipykernel install failed (is ipykernel in the venv?):\n" .. (res.stderr or ""),
+              vim.log.levels.ERROR
+            )
+          end
+        end)
+      end
+    )
+  end)
+end
+
 local molten_maps = {
-  { "mi", "<cmd>MoltenInit<cr>", "Init Kernel" },
+  { "mi", "<cmd>MoltenInit<cr>", "Init Kernel (pick from list)" },
+  { "mk", kernel_from_venv, "Init Kernel from Active venv" },
   { "mc", run_cell, "Run Cell" },
   { "ml", "<cmd>MoltenEvaluateLine<cr>", "Run Line" },
   { "mr", "<cmd>MoltenReevaluateCell<cr>", "Re-run Cell" },
