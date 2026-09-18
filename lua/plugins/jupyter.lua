@@ -39,6 +39,49 @@ local function cell_bounds()
   return first, last
 end
 
+-- Cell decoration ------------------------------------------------------------
+-- jupytext hands back a plain .py, so `# %%` markers look like any other
+-- comment and the notebook reads as one long file. Paint each marker line as a
+-- full-width bar so cells are visually separated.
+--
+-- line_hl_group on the marker line does the whole job: no window-width maths,
+-- nothing to recompute on resize or wrap.
+local cell_ns = vim.api.nvim_create_namespace("notebook_cells")
+
+local function set_cell_highlights()
+  -- Derived from the active colorscheme rather than hardcoded, so this follows
+  -- whatever theme is loaded.
+  local function bg_of(group)
+    return vim.api.nvim_get_hl(0, { name = group, link = false }).bg
+  end
+  local function fg_of(group)
+    return vim.api.nvim_get_hl(0, { name = group, link = false }).fg
+  end
+  vim.api.nvim_set_hl(0, "NotebookCellCode", { bg = bg_of("CursorLine"), fg = fg_of("Function"), bold = true })
+  vim.api.nvim_set_hl(0, "NotebookCellMarkdown", { bg = bg_of("CursorLine"), fg = fg_of("Statement"), bold = true })
+end
+
+local function decorate_cells(buf)
+  if not vim.api.nvim_buf_is_loaded(buf) then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(buf, cell_ns, 0, -1)
+  for lnum, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+    if line:match("^%s*#%s*%%%%") then
+      local markdown = line:match("%[markdown%]") ~= nil
+      local group = markdown and "NotebookCellMarkdown" or "NotebookCellCode"
+      vim.api.nvim_buf_set_extmark(buf, cell_ns, lnum - 1, 0, {
+        line_hl_group = group,
+        -- Fills the rest of the row, which is what makes it read as a bar
+        -- rather than a highlighted word.
+        hl_eol = true,
+        virt_text = { { markdown and "  markdown " or "  code ", group } },
+        virt_text_pos = "right_align",
+      })
+    end
+  end
+end
+
 local function run_cell()
   local first, last = cell_bounds()
   if first > last then
@@ -73,6 +116,22 @@ local molten_maps = {
   { "mL", "<cmd>MoltenLoad<cr>", "Load Saved Outputs" },
 }
 
+---Jump to the next/previous `# %%` marker.
+local function goto_cell(dir)
+  return function()
+    local cur = vim.api.nvim_win_get_cursor(0)[1]
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local range = dir > 0 and vim.fn.range(cur + 1, #lines) or vim.fn.range(cur - 1, 1, -1)
+    for _, lnum in ipairs(range) do
+      if (lines[lnum] or ""):match("^%s*#%s*%%%%") then
+        vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+        vim.cmd("normal! zz")
+        return
+      end
+    end
+  end
+end
+
 local function attach_molten_keymaps(buf)
   for _, m in ipairs(molten_maps) do
     vim.keymap.set("n", "<leader>" .. m[1], m[2], { buffer = buf, desc = m[3] })
@@ -81,6 +140,11 @@ local function attach_molten_keymaps(buf)
     buffer = buf,
     desc = "Run Selection",
   })
+
+  -- ]c / [c are free in a python buffer (diff mode is the only thing that
+  -- claims them, and gitsigns uses ]h / [h for hunks).
+  vim.keymap.set("n", "]c", goto_cell(1), { buffer = buf, desc = "Next Cell" })
+  vim.keymap.set("n", "[c", goto_cell(-1), { buffer = buf, desc = "Previous Cell" })
 
   local ok, wk = pcall(require, "which-key")
   if ok then
@@ -150,13 +214,27 @@ return {
       vim.g.molten_output_win_max_height = 20
       vim.g.molten_output_crop_border = true
 
+      local group = vim.api.nvim_create_augroup("MoltenKeymaps", { clear = true })
       vim.api.nvim_create_autocmd("FileType", {
-        group = vim.api.nvim_create_augroup("MoltenKeymaps", { clear = true }),
+        group = group,
         pattern = nb_filetypes,
         callback = function(args)
           attach_molten_keymaps(args.buf)
+          set_cell_highlights()
+          decorate_cells(args.buf)
         end,
       })
+      -- Markers move as you edit; redraw on write and when leaving insert,
+      -- which is cheap and avoids doing it on every keystroke.
+      vim.api.nvim_create_autocmd({ "BufWritePost", "InsertLeave", "TextChanged" }, {
+        group = group,
+        callback = function(args)
+          if vim.tbl_contains(nb_filetypes, vim.bo[args.buf].filetype) then
+            decorate_cells(args.buf)
+          end
+        end,
+      })
+      vim.api.nvim_create_autocmd("ColorScheme", { group = group, callback = set_cell_highlights })
     end,
   },
 }
