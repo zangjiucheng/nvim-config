@@ -40,4 +40,31 @@ return {
       end, { desc = "Cycle Snippet Choice" })
     end,
   },
+
+  -- LazyVim's <Tab> chain is snippet_forward -> ai_nes -> ai_accept -> fallback:
+  -- it jumps *within* an already-active snippet but never expands a trigger, so
+  -- typing `cases<Tab>` just inserted a literal tab and the completion menu was
+  -- the only way to expand anything. Put expansion at the front of the chain.
+  {
+    "saghen/blink.cmp",
+    optional = true,
+    opts = function(_, opts)
+      opts.keymap = opts.keymap or {}
+      opts.keymap["<Tab>"] = {
+        function()
+          local ls = require("luasnip")
+          if ls.expandable() then
+            -- blink runs keymap commands under textlock, so the edit has to be
+            -- deferred; claim the key synchronously so the chain stops here.
+            vim.schedule(function()
+              ls.expand()
+            end)
+            return true
+          end
+        end,
+        LazyVim.cmp.map({ "snippet_forward", "ai_nes", "ai_accept" }),
+        "fallback",
+      }
+    end,
+  },
 }

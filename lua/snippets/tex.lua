@@ -78,7 +78,7 @@ local function am(trig, nodes, opts)
   opts = opts or {}
   return mark_auto(
     s(
-      { trig = trig, snippetType = "autosnippet", wordTrig = opts.word ~= false },
+      { trig = trig, snippetType = "autosnippet", wordTrig = opts.word ~= false, priority = 1100 },
       nodes,
       { condition = math_cond, show_condition = in_math }
     )
@@ -88,13 +88,35 @@ end
 ---Auto-expanding, prose only (the two entry points into math).
 local function ap(trig, nodes)
   return mark_auto(
-    s({ trig = trig, snippetType = "autosnippet" }, nodes, { condition = prose_cond, show_condition = in_prose })
+    s(
+      { trig = trig, snippetType = "autosnippet", priority = 1100 },
+      nodes,
+      { condition = prose_cond, show_condition = in_prose }
+    )
   )
 end
 
 ---<Tab>-triggered anywhere in a TeX buffer except comments/verbatim.
+---
+---The trigger is a Lua pattern with an optional leading backslash, because in
+---LaTeX your hand reaches for `\\` first and these names (cases, align,
+---theorem, pmatrix, ...) are environments rather than commands. Matching the
+---backslash means it is *replaced* rather than left in front of the expansion.
+---wordTrig stays on: without it `\\pmat` would match the `mat` trigger midway
+---through and expand to `\\p\\begin{matrix}`. The priority bump outranks
+---friendly-snippets' own LaTeX pack, which registers plain triggers like `ali`
+---that would otherwise win and leave the backslash behind.
 local function tb(trig, nodes)
-  return s({ trig = trig }, nodes, { condition = tex_cond })
+  return s(
+    { trig = "\\?" .. trig, regTrig = true, priority = 1100 },
+    nodes,
+    -- No backslash guard here: the pattern above consumes it deliberately.
+    {
+      condition = function()
+        return not in_excluded_zone()
+      end,
+    }
+  )
 end
 
 ---Optional `[name]` argument: first choice is empty (the common case),
