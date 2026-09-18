@@ -204,6 +204,40 @@ return {
       session_lens = {
         load_on_setup = true,
       },
+      -- `localoptions` (see lua/config/options.lua) restores filetype, but it
+      -- also saves window options owned by lazily-loaded plugins. A session
+      -- replaying `winbar=%{%v:lua.dropbar()%}` or
+      -- `foldtext=v:lua.require'ufo.main'.foldtext()` before dropbar/ufo load
+      -- aborts the restore with "attempt to call global 'dropbar'". Blank them
+      -- before saving; both plugins re-apply their own on the way back in.
+      pre_save_cmds = {
+        function()
+          for _, win in ipairs(vim.api.nvim_list_wins()) do
+            if vim.api.nvim_win_is_valid(win) then
+              vim.wo[win].winbar = ""
+              vim.wo[win].foldtext = ""
+            end
+          end
+        end,
+      },
+      -- Belt and braces: anything that still lands without a filetype gets
+      -- detected explicitly. A no-op when localoptions did its job.
+      post_restore_cmds = {
+        function()
+          for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+            if
+              vim.api.nvim_buf_is_loaded(buf)
+              and vim.bo[buf].filetype == ""
+              and vim.api.nvim_buf_get_name(buf) ~= ""
+              and vim.bo[buf].buftype == ""
+            then
+              vim.api.nvim_buf_call(buf, function()
+                vim.cmd("filetype detect")
+              end)
+            end
+          end
+        end,
+      },
     },
     keys = {
       { "<leader>pr", "<cmd>AutoSession restore<cr>", desc = "Restore Session" },

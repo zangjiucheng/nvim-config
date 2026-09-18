@@ -16,10 +16,12 @@ opt.winblend = 0
 opt.winborder = "rounded"
 
 -- Sessions
--- auto-session needs `localoptions` in sessionoptions, otherwise restored
--- buffers come back with no filetype at all: no LSP, no VimTeX, no syntax.
--- LazyVim's default list omits it. `skiprtp` stays — without it the session
--- serialises the whole runtimepath and fights lazy.nvim on the next start.
+-- `localoptions` is what makes filetype survive a restore; without it buffers
+-- come back inert (no LSP, no VimTeX, no syntax). It is blunt though — it also
+-- serialises window options that plugins own — so lua/plugins/workflow.lua
+-- clears `winbar` and `foldtext` before saving. Those reference v:lua functions
+-- from VeryLazy plugins that do not exist yet mid-restore.
+-- `skiprtp` stays: without it the session serialises the whole runtimepath.
 opt.sessionoptions:append("localoptions")
 
 -- Python provider
