@@ -30,6 +30,10 @@ return {
         -- highlight on every file open and lost to the theme on reload.
         hl.ColorColumn = { bg = colors.bg_dark1 }
 
+        -- Visible math boundaries, distinct from both prose and parentheses
+        -- inside a formula. VimTeX links \(...\), \[...\], $ and $$ here.
+        hl.texMathDelimZone = { fg = colors.cyan, bold = true }
+
         hl.NormalFloat = { bg = panel_bg, fg = colors.fg }
         hl.FloatBorder = { bg = panel_bg, fg = panel_border }
         hl.FloatTitle = { bg = panel_bg, fg = panel_border, bold = true }

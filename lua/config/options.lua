@@ -22,7 +22,10 @@ opt.winborder = "rounded"
 -- clears `winbar` and `foldtext` before saving. Those reference v:lua functions
 -- from VeryLazy plugins that do not exist yet mid-restore.
 -- `skiprtp` stays: without it the session serialises the whole runtimepath.
-opt.sessionoptions:append("localoptions")
+opt.sessionoptions = {
+  "buffers", "curdir", "tabpages", "winsize", "winpos",
+  "folds", "help", "globals", "localoptions", "skiprtp",
+}
 
 -- Python provider
 -- Pinned to a dedicated venv (pynvim + jupyter_client) rather than `python3`,

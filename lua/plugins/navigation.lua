@@ -12,6 +12,21 @@ return {
     "nvim-neo-tree/neo-tree.nvim",
     opts = function(_, opts)
       opts.close_if_last_window = false
+      opts.sort_case_insensitive = true
+      opts.git_status_scope_to_path = true
+      opts.open_files_do_not_replace_types = opts.open_files_do_not_replace_types or {}
+      for _, ft in ipairs({
+        "terminal", "snacks_terminal", "aerial", "OverseerList", "qf", "Trouble", "trouble",
+        "copilot-chat", "codecompanion", "dap-repl", "dapui_scopes", "dapui_stacks",
+        "dapui_watches", "dapui_breakpoints", "dapui_console",
+      }) do
+        if not vim.tbl_contains(opts.open_files_do_not_replace_types, ft) then
+          table.insert(opts.open_files_do_not_replace_types, ft)
+        end
+      end
+      opts.default_component_configs = vim.tbl_deep_extend("force", opts.default_component_configs or {}, {
+        name = { highlight_opened_files = true },
+      })
       opts.source_selector = vim.tbl_deep_extend("force", opts.source_selector or {}, {
         winbar = true,
         statusline = false,
@@ -19,6 +34,11 @@ return {
       opts.window = vim.tbl_deep_extend("force", opts.window or {}, {
         position = "left",
         width = 34,
+        mappings = {
+          -- Browse files without temporarily replacing an editor split.
+          ["P"] = { "toggle_preview", config = { use_float = true } },
+          ["gp"] = "focus_preview",
+        },
       })
       opts.git_status = vim.tbl_deep_extend("force", opts.git_status or {}, {
         window = {
@@ -32,6 +52,9 @@ return {
       })
       opts.filesystem = vim.tbl_deep_extend("force", opts.filesystem or {}, {
         bind_to_cwd = false,
+        -- Configuration files belong in the explorer too; generated and
+        -- gitignored files remain hidden (H can reveal them temporarily).
+        filtered_items = { hide_dotfiles = false, hide_gitignored = true },
         follow_current_file = {
           enabled = true,
           leave_dirs_open = true,

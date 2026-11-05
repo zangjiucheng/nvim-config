@@ -178,6 +178,10 @@ return {
       }
 
       -- Editor ---------------------------------------------------------------
+      -- Keep math boundaries visible even with conceallevel=2; symbols such
+      -- as \alpha still render as Unicode, but \(...\) and \[...\] stay clear.
+      vim.g.vimtex_syntax_conceal = { math_bounds = 0 }
+
       -- VimTeX's own insert-mode imaps (`a -> \alpha) are switched off: LuaSnip
       -- covers the same ground (see lua/snippets/tex.lua), and leaving them on
       -- puts a timeout on every literal backtick.
@@ -231,11 +235,21 @@ return {
     "saghen/blink.cmp",
     opts = {
       sources = {
+        per_filetype = {
+          tex = { inherit_defaults = true, "tex_environments" },
+          plaintex = { inherit_defaults = true, "tex_environments" },
+        },
         providers = {
+          tex_environments = {
+            name = "LaTeX Environment",
+            module = "config.tex_environments",
+            score_offset = 10,
+          },
           snippets = {
-            -- In LaTeX a leading backslash means "I am typing a command", which
-            -- is texlab's job. Snippet triggers are typed WITHOUT one (`enum`,
-            -- `thm`, `pmat`). Offering them after a `\\` produces
+            -- texlab handles commands; tex_environments handles \align-style
+            -- environment shortcuts with an explicit edit covering the slash.
+            -- Generic snippet triggers are typed WITHOUT one (`enum`, `thm`,
+            -- `pmat`). Offering those after a `\\` produces
             -- `\\\\begin{enumerate}`: blink's keyword boundary stops at the
             -- backslash, so accepting leaves the one you typed behind.
             enabled = function()
@@ -243,7 +257,7 @@ return {
                 return true
               end
               local before = vim.api.nvim_get_current_line():sub(1, vim.fn.col(".") - 1)
-              return before:match("\\%a*$") == nil
+              return before:match("\\%a*%*?$") == nil
             end,
           },
         },
@@ -254,11 +268,11 @@ return {
             if not vim.tbl_contains({ "tex", "plaintex", "bib" }, vim.bo.filetype) then
               return true
             end
-            -- Only offer completion where texlab actually has something to say:
+            -- Show command/environment shortcuts and command arguments:
             -- after a backslash command, or inside a command's {…} argument
             -- (\cite{, \ref{, \begin{, …). Prose and math never open the menu.
             local before = vim.api.nvim_get_current_line():sub(1, vim.fn.col(".") - 1)
-            return before:match("\\%a*$") ~= nil or before:match("\\%a+%*?{[^}]*$") ~= nil
+            return before:match("\\%a*%*?$") ~= nil or before:match("\\%a+%*?{[^}]*$") ~= nil
           end,
         },
       },

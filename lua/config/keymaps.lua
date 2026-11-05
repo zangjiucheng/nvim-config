@@ -60,6 +60,12 @@ vim.keymap.set("n", "<C-S-f>", "<cmd>FzfLua live_grep<cr>", { desc = "Search in 
 vim.keymap.set("n", "<C-S-e>", "<cmd>Neotree toggle<cr>", { desc = "Toggle Explorer" })
 vim.keymap.set("n", "<C-S-o>", "<cmd>FzfLua lsp_document_symbols<cr>", { desc = "Go to Symbol" })
 
+-- Cmd+/ in GUI clients; Ghostty forwards it as Alt+/ for terminal Neovim.
+for _, key in ipairs({ "<D-/>", "<M-/>" }) do
+  vim.keymap.set("n", key, "gcc", { remap = true, desc = "Toggle Line Comment" })
+  vim.keymap.set("x", key, "gc", { remap = true, desc = "Toggle Selection Comment" })
+end
+
 -- Rename symbol (F2) and go to definition (F12)
 vim.keymap.set("n", "<F2>", vim.lsp.buf.rename, { desc = "Rename Symbol" })
 vim.keymap.set("n", "<F12>", vim.lsp.buf.definition, { desc = "Go to Definition" })

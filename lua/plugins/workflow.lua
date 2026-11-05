@@ -238,15 +238,22 @@ return {
       -- tabs. Sessions live in stdpath("data")/sessions.
       auto_restore = true,
       auto_save = true,
-      suppressed_dirs = { "~/", "~/Dev", "~/Downloads", "~/Documents", "~/Desktop/" },
+      auto_create = true,
+      -- Resume cwd first, then the most recent workspace when cwd has none.
+      auto_restore_last_session = true,
+      -- Opening a file directly should still remember the resulting workspace.
+      args_allow_files_auto_save = true,
+      suppressed_dirs = {},
       -- A lone dashboard is not a workspace worth remembering.
       bypass_save_filetypes = { "snacks_dashboard", "dashboard", "ministarter", "alpha" },
+      -- Capture the file tree before closing it; other transient panels are
+      -- still discarded by auto-session's unsupported-window handling.
+      close_unsupported_windows = { preserve_filetypes = { "neo-tree" } },
       -- Panels are not backed by files, so :mksession restores them as broken
       -- empty windows. Close them first and the restored layout is exactly the
       -- file windows you were editing.
       close_filetypes_on_save = {
         "checkhealth",
-        "neo-tree",
         "aerial",
         "trouble",
         "Trouble",
@@ -270,14 +277,20 @@ return {
       -- before saving; both plugins re-apply their own on the way back in.
       pre_save_cmds = {
         function()
-          for _, win in ipairs(vim.api.nvim_list_wins()) do
-            if vim.api.nvim_win_is_valid(win) then
-              vim.wo[win].winbar = ""
-              vim.wo[win].foldtext = ""
-            end
-          end
+          require("config.session").before_save()
         end,
       },
+      post_save_cmds = {
+        function()
+          require("config.session").after_save()
+        end,
+      },
+      save_extra_data = function()
+        return require("config.session").save_extra()
+      end,
+      restore_extra_data = function(name, data)
+        require("config.session").restore_extra(name, data)
+      end,
       -- Belt and braces: anything that still lands without a filetype gets
       -- detected explicitly. A no-op when localoptions did its job.
       post_restore_cmds = {
