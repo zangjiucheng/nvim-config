@@ -1,4 +1,19 @@
 return {
+  -- Move through the completion menu with Ctrl+j / Ctrl+k (vim-style j/k;
+  -- plain j/k must stay literal text in insert mode). Arrows and <C-n>/<C-p>
+  -- keep working. <C-k> was blink's signature-help toggle: that still happens
+  -- when no menu is open.
+  {
+    "saghen/blink.cmp",
+    optional = true,
+    opts = {
+      keymap = {
+        ["<C-j>"] = { "select_next", "fallback" },
+        ["<C-k>"] = { "select_prev", "show_signature", "hide_signature", "fallback" },
+      },
+    },
+  },
+
   -- LSP/treesitter-aware folding with a fold preview (VS Code-style)
   {
     "kevinhwang91/nvim-ufo",
