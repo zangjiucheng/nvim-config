@@ -129,3 +129,33 @@ vim.keymap.set("i", "<M-.>", function()
   vim.cmd("stopinsert")
   vim.schedule(quick_fix)
 end, { desc = "Quick Fix / Spelling" })
+
+-- Copy current location ------------------------------------------------------
+-- Yanks `path:line` (or `path:start-end` for a visual selection) to the system
+-- clipboard, ready to paste into a terminal, chat, or another editor's
+-- "go to file" prompt. Lowercase = path relative to cwd, uppercase = absolute.
+local function copy_location(absolute)
+  local file = vim.api.nvim_buf_get_name(0)
+  if file == "" then
+    vim.notify("Buffer has no file", vim.log.levels.WARN)
+    return
+  end
+  local path = absolute and vim.fn.fnamemodify(file, ":p") or vim.fn.fnamemodify(file, ":~:.")
+  local lines
+  if vim.fn.mode():match("[vV\22]") then
+    local s, e = vim.fn.line("v"), vim.fn.line(".")
+    if s > e then
+      s, e = e, s
+    end
+    lines = s == e and tostring(s) or (s .. "-" .. e)
+    vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "n", false)
+  else
+    lines = tostring(vim.fn.line("."))
+  end
+  local loc = path .. ":" .. lines
+  vim.fn.setreg("+", loc)
+  vim.notify("Copied " .. loc)
+end
+
+vim.keymap.set({ "n", "x" }, "<leader>fy", function() copy_location(false) end, { desc = "Copy Location (relative)" })
+vim.keymap.set({ "n", "x" }, "<leader>fY", function() copy_location(true) end, { desc = "Copy Location (absolute)" })
