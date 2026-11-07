@@ -6,6 +6,9 @@ vim.keymap.set("n", "<leader>w<", "<cmd>vertical resize -4<cr>", { desc = "Decre
 vim.keymap.set("n", "<leader>w>", "<cmd>vertical resize +4<cr>", { desc = "Increase Window Width" })
 vim.keymap.set("n", "<leader>w-", "<cmd>resize -2<cr>", { desc = "Decrease Window Height" })
 vim.keymap.set("n", "<leader>w+", "<cmd>resize +2<cr>", { desc = "Increase Window Height" })
+vim.keymap.set("n", "<leader>w=", "<C-w>=", { desc = "Equalize Window Sizes" })
+vim.keymap.set("n", "<leader>wv", "<cmd>vsplit<cr>", { desc = "Split Window Right" })
+vim.keymap.set("n", "<leader>ws", "<cmd>split<cr>", { desc = "Split Window Below" })
 vim.keymap.set("t", "<Esc><Esc>", [[<C-\><C-n>]], { desc = "Terminal Normal Mode" })
 
 -- Fast insert-mode exit: `jk` -> <Esc> ---------------------------------------

@@ -43,3 +43,6 @@ if vim.fn.executable(python_host) == 1 then
   vim.g.loaded_python3_provider = nil
   vim.g.python3_host_prog = python_host
 end
+
+-- GUI (no-op outside Neovide)
+require("config.neovide")
