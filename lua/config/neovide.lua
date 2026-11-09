@@ -42,16 +42,18 @@ if is_mac then
   g.neovide_input_macos_option_key_is_meta = "only_left"
 end
 
---- IME: enabled only in insert mode and / ? search, so a Chinese input
---- method doesn't swallow normal-mode keys.
+--- IME: enabled only in insert mode, terminal mode and / ? search, so a
+--- Chinese input method doesn't swallow normal-mode keys. Terminal mode fires
+--- TermEnter/TermLeave, not InsertEnter/InsertLeave. Preedit drawing comes
+--- from neov-ime.nvim (lua/plugins/neovide.lua).
 local function set_ime(on)
   return function()
     g.neovide_input_ime = on
   end
 end
 local ime = vim.api.nvim_create_augroup("neovide_ime", { clear = true })
-vim.api.nvim_create_autocmd("InsertEnter", { group = ime, callback = set_ime(true) })
-vim.api.nvim_create_autocmd("InsertLeave", { group = ime, callback = set_ime(false) })
+vim.api.nvim_create_autocmd({ "InsertEnter", "TermEnter" }, { group = ime, callback = set_ime(true) })
+vim.api.nvim_create_autocmd({ "InsertLeave", "TermLeave" }, { group = ime, callback = set_ime(false) })
 vim.api.nvim_create_autocmd("CmdlineEnter", { group = ime, pattern = { "/", "?" }, callback = set_ime(true) })
 vim.api.nvim_create_autocmd("CmdlineLeave", { group = ime, pattern = { "/", "?" }, callback = set_ime(false) })
 g.neovide_input_ime = false
