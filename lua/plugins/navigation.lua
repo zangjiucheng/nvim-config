@@ -99,6 +99,8 @@ return {
 
   {
     "stevearc/aerial.nvim",
+    -- master requires Neovim 0.12+; use the 0.11 branch on older Neovim
+    branch = vim.fn.has("nvim-0.12") == 1 and "master" or "nvim-0.11",
     opts = function(_, opts)
       opts.attach_mode = "window"
       opts.close_automatic_events = { "unsupported" }

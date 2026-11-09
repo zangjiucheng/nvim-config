@@ -140,6 +140,12 @@ return {
       vim.g.vimtex_quickfix_method = vim.fn.executable("pplatex") == 1 and "pplatex" or "latexlog"
     end,
     init = function()
+      -- Newer VimTeX refuses to load on Neovim < 0.12.4. Skip that check so the
+      -- plugin still works on older Neovim (remove once Neovim is upgraded).
+      if vim.fn.has("nvim-0.12.4") == 0 then
+        vim.g.vimtex_version_check = 0
+      end
+
       -- Compiler -------------------------------------------------------------
       vim.g.vimtex_compiler_method = "latexmk"
       vim.g.vimtex_compiler_latexmk = {
@@ -157,7 +163,19 @@ return {
       -- Viewer ---------------------------------------------------------------
       -- Skim, driven through VimTeX's JXA bridge (no hardcoded app path, so the
       -- nix-installed /Applications/Nix Apps/Skim.app is found fine).
-      vim.g.vimtex_view_method = "skim"
+      -- Skim is macOS-only; elsewhere use zathura, else the system default viewer.
+      if vim.fn.has("mac") == 1 then
+        vim.g.vimtex_view_method = "skim"
+      elseif vim.fn.executable("zathura") == 1 then
+        vim.g.vimtex_view_method = "zathura"
+      elseif vim.fn.has("wsl") == 1 and vim.fn.executable("explorer.exe") == 1 then
+        -- WSL: xdg-open has no PDF handler; hand the PDF to the Windows viewer.
+        vim.g.vimtex_view_method = "general"
+        vim.g.vimtex_view_general_viewer = vim.fn.stdpath("config") .. "/scripts/open-pdf.sh"
+        vim.g.vimtex_view_general_options = "@pdf"
+      else
+        vim.g.vimtex_view_method = "general" -- xdg-open
+      end
       vim.g.vimtex_view_automatic = 1 -- open the PDF after the first build
       vim.g.vimtex_view_skim_sync = 1 -- forward-search after every build
       vim.g.vimtex_view_skim_activate = 0 -- but keep keyboard focus in Neovim
