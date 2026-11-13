@@ -1,12 +1,21 @@
 # nvim-config
 
-Jiucheng's personal [LazyVim](https://github.com/LazyVim/LazyVim) configuration, tuned into a VS Code-shaped daily driver — command palette, debugger, source control, minimap — without ever giving up core Vim motions.
+> [!IMPORTANT]
+> **Deprecated — No Longer Maintained (November 2026)**
+>
+> I've moved my personal development environment from **Neovim/LazyVim to Emacs** and no longer use this configuration as my daily driver.
+>
+> This repository is kept for historical reference. I don't plan to maintain it or provide further updates, and compatibility with newer versions of Neovim or its plugins is not guaranteed.
 
-**[📖 Full usage guide →](https://zangjiucheng.github.io/nvim-config/)** — install steps, the complete keymap reference, and architecture live there. This README is the short version.
+This repository contains my former personal [LazyVim](https://github.com/LazyVim/LazyVim) configuration, tuned into a VS Code-shaped daily driver — command palette, debugger, source control, minimap — without ever giving up core Vim motions.
+
+**[📖 Full usage guide →](https://zangjiucheng.github.io/nvim-config/)** — historical install steps, the complete keymap reference, and architecture live there. This README is the short version.
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-informational)](./LICENSE)
 
-## Quick install
+## Legacy installation (unmaintained)
+
+> **Note:** These instructions are preserved for reference and are no longer actively tested.
 
 ```bash
 mv ~/.config/nvim ~/.config/nvim.bak 2>/dev/null
@@ -16,7 +25,7 @@ nvim
 
 First launch bootstraps `lazy.nvim`, installs every plugin, and pulls LSP servers/formatters/debug adapters through Mason — let it finish, then restart once. Needs a [Nerd Font](https://www.nerdfonts.com/) for icons to render correctly. Full requirements: see the [usage guide](https://zangjiucheng.github.io/nvim-config/#requirements).
 
-## What this is
+## What this was
 
 - Fixed IDE-style layout: file explorer left, outline right, diagnostics/tasks/output along the bottom
 - VS Code-style breadcrumbs (`dropbar.nvim`), sticky scroll (`treesitter-context`), and a code minimap (`neominimap.nvim`)
